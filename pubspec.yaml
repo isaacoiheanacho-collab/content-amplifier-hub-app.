@@ -1,0 +1,40 @@
+name: content_amplifier_hub
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '^3.11.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI
+  cupertino_icons: ^1.0.8
+
+  # Storage & Networking
+  flutter_secure_storage: ^9.0.0
+  http: ^1.1.0
+
+  # URL launching
+  url_launcher: ^6.2.0
+
+  # Firebase
+  firebase_core: ^2.24.0
+  firebase_messaging: ^14.7.0
+
+  # State management
+  provider: ^6.1.0
+
+  # WebView
+  webview_flutter: ^4.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
