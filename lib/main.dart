@@ -8,8 +8,30 @@ import 'services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    print('Firebase initialization failed: $e');
+    runApp(ErrorApp(error: e));
+    return;
+  }
   runApp(const MyApp());
+}
+
+class ErrorApp extends StatelessWidget {
+  final dynamic error;
+  const ErrorApp({super.key, required this.error});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Text('Firebase error: $error'),
+        ),
+      ),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -26,8 +48,8 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(primarySwatch: Colors.blue),
         initialRoute: '/login',
         routes: {
-          '/login': (context) => LoginScreen(),      // Removed const
-          '/register': (context) => RegisterScreen(), // Removed const
+          '/login': (context) => LoginScreen(),
+          '/register': (context) => RegisterScreen(),
           '/payment': (context) => PaymentScreen(
                 paymentUrl: ModalRoute.of(context)!.settings.arguments as String,
               ),
