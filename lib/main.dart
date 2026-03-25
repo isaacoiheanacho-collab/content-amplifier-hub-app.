@@ -19,7 +19,6 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // Use Provider (not ChangeNotifierProvider) because AuthService is not a ChangeNotifier
         Provider(create: (_) => AuthService()),
       ],
       child: MaterialApp(
@@ -27,8 +26,8 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(primarySwatch: Colors.blue),
         initialRoute: '/login',
         routes: {
-          '/login': (context) => const LoginScreen(),
-          '/register': (context) => const RegisterScreen(),
+          '/login': (context) => LoginScreen(),      // Removed const
+          '/register': (context) => RegisterScreen(), // Removed const
           '/payment': (context) => PaymentScreen(
                 paymentUrl: ModalRoute.of(context)!.settings.arguments as String,
               ),
