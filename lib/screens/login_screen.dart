@@ -25,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
+            MaterialPageRoute(builder: (_) => HomeScreen()), // no const
           );
         }
       } else {
@@ -77,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                  MaterialPageRoute(builder: (_) => RegisterScreen()), // no const
                 );
               },
               child: const Text('Don\'t have an account? Register'),
