@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http; // Add this
+import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
-import '../utils/constants.dart'; // Make sure baseUrl is imported
+import '../utils/constants.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
 
@@ -48,17 +48,16 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // Add this test method
   Future<void> _testConnection() async {
     try {
       final response = await http
           .get(Uri.parse(baseUrl))
           .timeout(const Duration(seconds: 10));
       if (response.statusCode == 200) {
+        final body = response.body;
+        final preview = body.length > 50 ? '${body.substring(0, 50)}...' : body;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  'Backend reachable! Response: ${response.body.substring(0, 50)}...')),
+          SnackBar(content: Text('Backend reachable! Response: $preview')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -100,7 +99,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: const Text('Login'),
                   ),
             const SizedBox(height: 12),
-            // Test button
             ElevatedButton(
               onPressed: _testConnection,
               child: const Text('Test Connection'),
