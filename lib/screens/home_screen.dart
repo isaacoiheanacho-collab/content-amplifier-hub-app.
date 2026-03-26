@@ -21,7 +21,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadStats();
+
+    // IMPORTANT: Delay provider access until widget is mounted
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadStats();
+    });
   }
 
   Future<void> _loadStats() async {
@@ -29,15 +33,19 @@ class _HomeScreenState extends State<HomeScreen> {
       _isLoading = true;
       _error = null;
     });
+
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
       final token = await auth.getToken();
+
       if (token == null) {
         Navigator.pushReplacementNamed(context, AppRoutes.login);
         return;
       }
+
       final boostService = BoostService(token);
       final stats = await boostService.getMemberStats();
+
       setState(() {
         _stats = stats;
         _isLoading = false;
@@ -139,7 +147,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
+
             const SizedBox(height: 24),
+
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -153,12 +163,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+
             const SizedBox(height: 24),
+
             Text(
               'Quick actions',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 12),
+
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -211,7 +224,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _actionCard({required IconData icon, required String label, required VoidCallback onTap, required Color color}) {
+  Widget _actionCard({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    required Color color,
+  }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -226,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Icon(icon, size: 32, color: color),
             const SizedBox(height: 8),
-            Text(label, style: TextStyle(fontWeight: FontWeight.w500)),
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
           ],
         ),
       ),
