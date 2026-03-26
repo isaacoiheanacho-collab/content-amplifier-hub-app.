@@ -33,7 +33,6 @@ class _HomeScreenState extends State<HomeScreen> {
       final auth = Provider.of<AuthService>(context, listen: false);
       final token = await auth.getToken();
       if (token == null) {
-        // Not logged in, redirect to login
         Navigator.pushReplacementNamed(context, AppRoutes.login);
         return;
       }
@@ -68,11 +67,16 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               const Icon(Icons.error_outline, size: 48, color: Colors.red),
               const SizedBox(height: 16),
-              Text('Failed to load profile: $_error'),
+              Text('Error loading data: $_error'),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadStats,
                 child: const Text('Retry'),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => Navigator.pushNamed(context, AppRoutes.supportQueue),
+                child: const Text('Go to Support Queue'),
               ),
             ],
           ),
@@ -89,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final stats = _stats!;
     final boostsLeft = (stats['max_monthly_boosts'] as int) - (stats['monthly_boosts_used'] as int);
     final supportsGiven = stats['supports_given'] ?? 0;
-    final streak = 0; // TODO: implement streak tracking
+    final streak = 0;
 
     return Scaffold(
       appBar: AppBar(

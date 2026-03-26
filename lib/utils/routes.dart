@@ -10,4 +10,7 @@ class AppRoutes {
   static const myBoosts = '/my-boosts';
   static const supportQueue = '/support-queue';
   static const settings = '/settings';
+  static const terms = '/terms';
+  static const privacy = '/privacy';
+  static const disclaimer = '/disclaimer';
 }

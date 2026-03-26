@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../utils/validators.dart';
@@ -6,7 +7,6 @@ import '../utils/routes.dart';
 import '../utils/theme.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/text_input_field.dart';
-import '../widgets/checkbox_tile.dart';
 import '../models/plan.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -54,7 +54,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (result['success']) {
         final amount = result['amountToPay'];
         final plan = Plan(name: 'Yearly Membership', price: amount, description: '');
-        // Navigate to profile setup (or directly to payment if you prefer)
         Navigator.pushReplacementNamed(
           context,
           AppRoutes.payment,
@@ -122,12 +121,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 icon: Icons.people,
               ),
               const SizedBox(height: 24),
-              CheckboxTile(
-                value: _agreeTerms,
-                onChanged: (val) => setState(() => _agreeTerms = val ?? false),
-                text:
-                    'I have read and accept the Terms & Conditions and Privacy Policy.',
-                textStyle: TextStyle(color: AppColors.textSecondary),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Checkbox(
+                      value: _agreeTerms,
+                      onChanged: (val) => setState(() => _agreeTerms = val ?? false),
+                      activeColor: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(
+                        style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                        children: [
+                          const TextSpan(text: 'I have read and accept the '),
+                          TextSpan(
+                            text: 'Terms & Conditions',
+                            style: const TextStyle(color: AppColors.primary, decoration: TextDecoration.underline),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () => Navigator.pushNamed(context, AppRoutes.terms),
+                          ),
+                          const TextSpan(text: ' and '),
+                          TextSpan(
+                            text: 'Privacy Policy',
+                            style: const TextStyle(color: AppColors.primary, decoration: TextDecoration.underline),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () => Navigator.pushNamed(context, AppRoutes.privacy),
+                          ),
+                          const TextSpan(text: '.'),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
               PrimaryButton(
