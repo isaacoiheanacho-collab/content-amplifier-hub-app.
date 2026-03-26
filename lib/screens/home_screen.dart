@@ -22,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
 
-    // IMPORTANT: Delay provider access until widget is mounted
+    // SAFE: Provider access only after widget is mounted
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadStats();
     });
