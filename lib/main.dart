@@ -12,6 +12,9 @@ import 'screens/submit_boost_screen.dart';
 import 'screens/my_boosts_screen.dart';
 import 'screens/support_queue_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/terms_screen.dart';
+import 'screens/privacy_screen.dart';
+import 'screens/disclaimer_screen.dart';
 import 'services/auth_service.dart';
 import 'utils/theme.dart';
 import 'utils/routes.dart';
@@ -29,7 +32,6 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // Use Provider (not ChangeNotifierProvider) because AuthService is not a ChangeNotifier
         Provider(create: (_) => AuthService()),
       ],
       child: MaterialApp(
@@ -54,6 +56,9 @@ class MyApp extends StatelessWidget {
           AppRoutes.myBoosts: (context) => const MyBoostsScreen(),
           AppRoutes.supportQueue: (context) => const SupportQueueScreen(),
           AppRoutes.settings: (context) => const SettingsScreen(),
+          AppRoutes.terms: (context) => const TermsScreen(),
+          AppRoutes.privacy: (context) => const PrivacyScreen(),
+          AppRoutes.disclaimer: (context) => const DisclaimerScreen(),
         },
       ),
     );
