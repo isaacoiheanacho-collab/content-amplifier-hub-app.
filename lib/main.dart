@@ -1,37 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'screens/splash_screen.dart';
+import 'screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
+import 'screens/profile_setup_screen.dart';
 import 'screens/payment_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/submit_boost_screen.dart';
+import 'screens/my_boosts_screen.dart';
+import 'screens/support_queue_screen.dart';
+import 'screens/settings_screen.dart';
 import 'services/auth_service.dart';
+import 'utils/theme.dart';
+import 'utils/routes.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  try {
-    await Firebase.initializeApp();
-  } catch (e) {
-    print('Firebase initialization failed: $e');
-    runApp(ErrorApp(error: e));
-    return;
-  }
+  await Firebase.initializeApp();
   runApp(const MyApp());
-}
-
-class ErrorApp extends StatelessWidget {
-  final dynamic error;
-  const ErrorApp({super.key, required this.error});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Firebase error: $error'),
-        ),
-      ),
-    );
-  }
 }
 
 class MyApp extends StatelessWidget {
@@ -41,18 +29,30 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => AuthService()),
       ],
       child: MaterialApp(
         title: 'Content Amplifier Hub',
-        theme: ThemeData(primarySwatch: Colors.blue),
-        initialRoute: '/login',
+        theme: buildAppTheme(),
+        initialRoute: AppRoutes.splash,
         routes: {
-          '/login': (context) => LoginScreen(),
-          '/register': (context) => RegisterScreen(),
-          '/payment': (context) => PaymentScreen(
-                paymentUrl: ModalRoute.of(context)!.settings.arguments as String,
-              ),
+          AppRoutes.splash: (context) => const SplashScreen(),
+          AppRoutes.welcome: (context) => const WelcomeScreen(),
+          AppRoutes.login: (context) => const LoginScreen(),
+          AppRoutes.register: (context) => const RegisterScreen(),
+          AppRoutes.profileSetup: (context) => const ProfileSetupScreen(),
+          AppRoutes.payment: (context) {
+            final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+            return PaymentScreen(
+              paymentUrl: args['paymentUrl'],
+              plan: args['plan'],
+            );
+          },
+          AppRoutes.home: (context) => const HomeScreen(),
+          AppRoutes.submitBoost: (context) => const SubmitBoostScreen(),
+          AppRoutes.myBoosts: (context) => const MyBoostsScreen(),
+          AppRoutes.supportQueue: (context) => const SupportQueueScreen(),
+          AppRoutes.settings: (context) => const SettingsScreen(),
         },
       ),
     );
