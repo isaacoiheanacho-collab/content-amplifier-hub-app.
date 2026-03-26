@@ -16,7 +16,7 @@ class AuthService {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'email': email, 'password': password}),
           )
-          .timeout(const Duration(seconds: 60)); // increased timeout
+          .timeout(const Duration(seconds: 60));
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
         return {
@@ -41,13 +41,15 @@ class AuthService {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'email': email, 'password': password}),
           )
-          .timeout(const Duration(seconds: 60)); // increased timeout
+          .timeout(const Duration(seconds: 60));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        final member = Member.fromJson(data['member']);
         await storage.write(key: 'token', value: data['token']);
+        await storage.write(key: 'memberId', value: member.id.toString()); // store memberId
         return {
           'success': true,
-          'member': Member.fromJson(data['member']),
+          'member': member,
         };
       } else {
         final error = jsonDecode(response.body)['error'];
@@ -62,7 +64,13 @@ class AuthService {
     return await storage.read(key: 'token');
   }
 
+  Future<int?> getMemberId() async {
+    final id = await storage.read(key: 'memberId');
+    return id != null ? int.parse(id) : null;
+  }
+
   Future<void> logout() async {
     await storage.delete(key: 'token');
+    await storage.delete(key: 'memberId');
   }
 }
