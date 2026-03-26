@@ -29,7 +29,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthService()),
+        // Use Provider (not ChangeNotifierProvider) because AuthService is not a ChangeNotifier
+        Provider(create: (_) => AuthService()),
       ],
       child: MaterialApp(
         title: 'Content Amplifier Hub',
