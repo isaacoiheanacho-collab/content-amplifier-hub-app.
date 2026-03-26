@@ -49,6 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _testConnection() async {
+    print('Attempting to connect to: $baseUrl'); // Added print
     try {
       final response = await http
           .get(Uri.parse(baseUrl))
@@ -99,6 +100,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: const Text('Login'),
                   ),
             const SizedBox(height: 12),
+            // Display the baseUrl
+            Text('API: $baseUrl', style: const TextStyle(fontSize: 10)),
+            const SizedBox(height: 8),
             ElevatedButton(
               onPressed: _testConnection,
               child: const Text('Test Connection'),
