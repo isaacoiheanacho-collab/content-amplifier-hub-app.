@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/boost_service.dart';
+import '../utils/theme.dart';
 import '../utils/routes.dart';
+import '../widgets/profile_avatar.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,7 +21,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadStats();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadStats();
+    });
   }
 
   Future<void> _loadStats() async {
@@ -27,15 +31,19 @@ class _HomeScreenState extends State<HomeScreen> {
       _isLoading = true;
       _error = null;
     });
+
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
       final token = await auth.getToken();
+
       if (token == null) {
         Navigator.pushReplacementNamed(context, AppRoutes.login);
         return;
       }
+
       final boostService = BoostService(token);
       final stats = await boostService.getMemberStats();
+
       setState(() {
         _stats = stats;
         _isLoading = false;
@@ -46,12 +54,6 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
       });
     }
-  }
-
-  Future<void> _logout(BuildContext context) async {
-    final auth = Provider.of<AuthService>(context, listen: false);
-    await auth.logout();
-    Navigator.pushReplacementNamed(context, AppRoutes.login);
   }
 
   @override
@@ -71,11 +73,16 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               const Icon(Icons.error_outline, size: 48, color: Colors.red),
               const SizedBox(height: 16),
-              Text('Error: $_error'),
+              Text('Error loading data: $_error'),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadStats,
                 child: const Text('Retry'),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => Navigator.pushNamed(context, AppRoutes.supportQueue),
+                child: const Text('Go to Support Queue'),
               ),
             ],
           ),
@@ -90,8 +97,19 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final stats = _stats!;
-    final boostsLeft = (stats['max_monthly_boosts'] as int) - (stats['monthly_boosts_used'] as int);
-    final supportsGiven = stats['supports_given'] ?? 0;
+
+    // SAFE PARSING — THIS FIXES YOUR BLANK SCREEN
+    final email = stats['email']?.toString() ?? 'Member';
+
+    final maxBoosts = int.tryParse(stats['max_monthly_boosts']?.toString() ?? '') ?? 0;
+    final usedBoosts = int.tryParse(stats['monthly_boosts_used']?.toString() ?? '') ?? 0;
+    final supportsGiven = int.tryParse(stats['supports_given']?.toString() ?? '') ?? 0;
+
+    final boostsLeft = maxBoosts - usedBoosts;
+
+    final membershipActive = stats['membership_active']?.toString() == "true";
+
+    final streak = 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -103,25 +121,138 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Email: ${stats['email']}'),
-            const SizedBox(height: 8),
-            Text('Membership: ${stats['membership_active'] ? 'Active' : 'Inactive'}'),
-            const SizedBox(height: 8),
-            Text('Boosts used: ${stats['monthly_boosts_used']}/${stats['max_monthly_boosts']}'),
-            const SizedBox(height: 8),
-            Text('Supports given: $supportsGiven'),
-            const SizedBox(height: 8),
-            Text('Supports received: ${stats['supports_received']}'),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () => _logout(context),
-              child: const Text('Logout'),
+            Row(
+              children: [
+                const ProfileAvatar(radius: 30),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Hi, ${email.split('@').first}',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      Chip(
+                        label: Text(
+                          membershipActive ? 'Active Member' : 'Inactive',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        backgroundColor: membershipActive
+                            ? AppColors.success.withOpacity(0.2)
+                            : AppColors.error.withOpacity(0.2),
+                        labelStyle: TextStyle(
+                          color: membershipActive ? AppColors.success : AppColors.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
+
+            const SizedBox(height: 24),
+
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _statColumn('Boosts left', boostsLeft, AppColors.primary),
+                    _statColumn('Supports given', supportsGiven, AppColors.success),
+                    _statColumn('Streak', streak, AppColors.accent),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            Text(
+              'Quick actions',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1.3,
+              children: [
+                _actionCard(
+                  icon: Icons.thumb_up,
+                  label: 'Support Now',
+                  onTap: () => Navigator.pushNamed(context, AppRoutes.supportQueue),
+                  color: AppColors.primary,
+                ),
+                _actionCard(
+                  icon: Icons.add,
+                  label: 'Submit a Boost',
+                  onTap: () => Navigator.pushNamed(context, AppRoutes.submitBoost),
+                  color: AppColors.accent,
+                ),
+                _actionCard(
+                  icon: Icons.history,
+                  label: 'My Boosts',
+                  onTap: () => Navigator.pushNamed(context, AppRoutes.myBoosts),
+                  color: AppColors.textSecondary,
+                ),
+                _actionCard(
+                  icon: Icons.person,
+                  label: 'Profile',
+                  onTap: () => Navigator.pushNamed(context, AppRoutes.settings),
+                  color: AppColors.primaryDark,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statColumn(String label, int value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value.toString(),
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color),
+        ),
+        Text(label, style: const TextStyle(fontSize: 12)),
+      ],
+    );
+  }
+
+  Widget _actionCard({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    required Color color,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 32, color: color),
+            const SizedBox(height: 8),
+            Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
           ],
         ),
       ),
