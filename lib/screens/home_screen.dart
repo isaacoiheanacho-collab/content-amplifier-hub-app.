@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/boost_service.dart';
+import '../models/member_stats.dart';
 import '../utils/theme.dart';
 import '../utils/routes.dart';
 import '../widgets/profile_avatar.dart';
@@ -14,7 +15,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  Map<String, dynamic>? _stats;
+  MemberStats? _stats;
   bool _isLoading = true;
   String? _error;
 
@@ -79,11 +80,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 onPressed: _loadStats,
                 child: const Text('Retry'),
               ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () => Navigator.pushNamed(context, AppRoutes.supportQueue),
-                child: const Text('Go to Support Queue'),
-              ),
             ],
           ),
         ),
@@ -97,23 +93,12 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final stats = _stats!;
-
-    // SAFE PARSING — THIS FIXES YOUR BLANK SCREEN
-    final email = stats['email']?.toString() ?? 'Member';
-
-    final maxBoosts = int.tryParse(stats['max_monthly_boosts']?.toString() ?? '') ?? 0;
-    final usedBoosts = int.tryParse(stats['monthly_boosts_used']?.toString() ?? '') ?? 0;
-    final supportsGiven = int.tryParse(stats['supports_given']?.toString() ?? '') ?? 0;
-
-    final boostsLeft = maxBoosts - usedBoosts;
-
-    final membershipActive = stats['membership_active']?.toString() == "true";
-
-    final streak = 0;
+    final boostsLeft = stats.maxMonthlyBoosts - stats.monthlyBoostsUsed;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -135,19 +120,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Hi, ${email.split('@').first}',
+                        'Hi, ${stats.email.split('@').first}',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       Chip(
                         label: Text(
-                          membershipActive ? 'Active Member' : 'Inactive',
+                          stats.membershipActive ? 'Active Member' : 'Inactive',
                           style: const TextStyle(fontSize: 12),
                         ),
-                        backgroundColor: membershipActive
+                        backgroundColor: stats.membershipActive
                             ? AppColors.success.withOpacity(0.2)
                             : AppColors.error.withOpacity(0.2),
                         labelStyle: TextStyle(
-                          color: membershipActive ? AppColors.success : AppColors.error,
+                          color: stats.membershipActive
+                              ? AppColors.success
+                              : AppColors.error,
                         ),
                       ),
                     ],
@@ -165,8 +152,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _statColumn('Boosts left', boostsLeft, AppColors.primary),
-                    _statColumn('Supports given', supportsGiven, AppColors.success),
-                    _statColumn('Streak', streak, AppColors.accent),
+                    _statColumn('Supports given', stats.supportsGiven, AppColors.success),
+                    _statColumn('Streak', 0, AppColors.accent),
                   ],
                 ),
               ),

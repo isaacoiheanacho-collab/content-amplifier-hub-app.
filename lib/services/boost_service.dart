@@ -2,12 +2,16 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../utils/constants.dart';
 import '../models/boost.dart';
+import '../models/member_stats.dart';
 
 class BoostService {
   final String token;
 
   BoostService(this.token);
 
+  // ------------------------------------------------------------
+  // SUBMIT BOOST
+  // ------------------------------------------------------------
   Future<BoostSubmissionResult> submitBoost({
     required int memberId,
     required String contentUrl,
@@ -39,6 +43,9 @@ class BoostService {
     }
   }
 
+  // ------------------------------------------------------------
+  // LIVE BOOSTS
+  // ------------------------------------------------------------
   Future<List<Boost>> getLiveBoosts({int limit = 20}) async {
     final response = await http.get(
       Uri.parse('$baseUrl/boosts/live?limit=$limit'),
@@ -53,6 +60,9 @@ class BoostService {
     }
   }
 
+  // ------------------------------------------------------------
+  // SUPPORT ACTIONS
+  // ------------------------------------------------------------
   Future<void> recordSupportClick(int boostId) async {
     await http.post(
       Uri.parse('$baseUrl/boosts/$boostId/support'),
@@ -67,19 +77,26 @@ class BoostService {
     );
   }
 
-  Future<Map<String, dynamic>> getMemberStats() async {
+  // ------------------------------------------------------------
+  // MEMBER STATS (UPDATED TO USE MODEL)
+  // ------------------------------------------------------------
+  Future<MemberStats> getMemberStats() async {
     final response = await http.get(
       Uri.parse('$baseUrl/member/stats'),
       headers: {'Authorization': 'Bearer $token'},
     ).timeout(const Duration(seconds: 60));
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      final data = jsonDecode(response.body);
+      return MemberStats.fromJson(data);
     } else {
       throw Exception('Failed to load member stats');
     }
   }
 
+  // ------------------------------------------------------------
+  // MY BOOSTS
+  // ------------------------------------------------------------
   Future<List<Boost>> getMyBoosts() async {
     final response = await http.get(
       Uri.parse('$baseUrl/member/boosts'),
@@ -95,6 +112,9 @@ class BoostService {
   }
 }
 
+// ------------------------------------------------------------
+// BOOST SUBMISSION RESULT MODEL
+// ------------------------------------------------------------
 class BoostSubmissionResult {
   final bool success;
   final String? slot;
