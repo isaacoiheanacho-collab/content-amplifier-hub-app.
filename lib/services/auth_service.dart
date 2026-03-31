@@ -1,124 +1,76 @@
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../utils/constants.dart';
+import '../models/member.dart';
 
-import '../services/auth_service.dart';
-import '../services/payment_api.dart';
-import '../models/plan.dart';
-import '../utils/routes.dart';
+class AuthService {
+  final storage = const FlutterSecureStorage();
+  final client = http.Client();
 
-class BillingScreen extends StatefulWidget {
-  const BillingScreen({super.key});
-
-  @override
-  State<BillingScreen> createState() => _BillingScreenState();
-}
-
-class _BillingScreenState extends State<BillingScreen> {
-  bool _loading = true;
-  bool _allowed = false;
-  String? _reason;
-  DateTime? _nextDue;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadMaintenanceStatus();
-  }
-
-  Future<void> _loadMaintenanceStatus() async {
-    final auth = Provider.of<AuthService>(context, listen: false);
-    final token = await auth.getToken();
-    final memberId = await auth.getMemberId();
-
-    final result = await PaymentAPI.checkMaintenanceStatus(memberId!, token!);
-
-    setState(() {
-      _allowed = result.allowed;
-      _reason = result.reason;
-      _nextDue = result.nextDue;
-      _loading = false;
-    });
-  }
-
-  Future<void> _payMaintenance() async {
-    final auth = Provider.of<AuthService>(context, listen: false);
-    final token = await auth.getToken();
-    final memberId = await auth.getMemberId();
-
-    final paymentUrl = await PaymentAPI.startMaintenancePayment(memberId!, token!);
-
-    Navigator.pushNamed(
-      context,
-      AppRoutes.payment,
-      arguments: {
-        'paymentUrl': paymentUrl,
-        'plan': Plan(
-          name: "Monthly Maintenance Fee",
-          price: 500,
-        ),
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+  Future<Map<String, dynamic>> register(String email, String password) async {
+    try {
+      final response = await client
+          .post(
+            Uri.parse('$baseUrl/auth/register'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 60));
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        return {
+          'success': true,
+          'member': Member.fromJson(data['member']),
+          'paymentUrl': data['paymentUrl'],
+        };
+      } else {
+        final error = jsonDecode(response.body)['error'];
+        return {'success': false, 'error': error};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Network error: $e'};
     }
+  }
 
-    return Scaffold(
-      appBar: AppBar(title: const Text("Billing")),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Card(
-              child: ListTile(
-                leading: Icon(
-                  _allowed ? Icons.check_circle : Icons.error,
-                  color: _allowed ? Colors.green : Colors.red,
-                ),
-                title: Text(
-                  _allowed
-                      ? "Maintenance Fee is Up to Date"
-                      : "Maintenance Fee Required",
-                ),
-                subtitle: Text(
-                  _allowed
-                      ? "You can boost and support."
-                      : _reason ?? "Please pay your monthly maintenance fee.",
-                ),
-              ),
-            ),
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    try {
+      final response = await client
+          .post(
+            Uri.parse('$baseUrl/auth/login'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'password': password}),
+          )
+          .timeout(const Duration(seconds: 60));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final member = Member.fromJson(data['member']);
+        await storage.write(key: 'token', value: data['token']);
+        await storage.write(key: 'memberId', value: member.id.toString()); // store memberId
+        return {
+          'success': true,
+          'member': member,
+        };
+      } else {
+        final error = jsonDecode(response.body)['error'];
+        return {'success': false, 'error': error};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
 
-            const SizedBox(height: 20),
+  Future<String?> getToken() async {
+    return await storage.read(key: 'token');
+  }
 
-            if (_nextDue != null)
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.calendar_month),
-                  title: const Text("Next Maintenance Due"),
-                  subtitle: Text(
-                    "${_nextDue!.day}/${_nextDue!.month}/${_nextDue!.year}",
-                  ),
-                ),
-              ),
+  Future<int?> getMemberId() async {
+    final id = await storage.read(key: 'memberId');
+    return id != null ? int.parse(id) : null;
+  }
 
-            const Spacer(),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _payMaintenance,
-                child: const Text("Pay Monthly Maintenance Fee (₦500)"),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  Future<void> logout() async {
+    await storage.delete(key: 'token');
+    await storage.delete(key: 'memberId');
   }
 }
