@@ -58,6 +58,7 @@ class _BillingScreenState extends State<BillingScreen> {
         'plan': Plan(
           name: "Monthly Maintenance Fee",
           price: 500,
+          description: "Monthly maintenance subscription",
         ),
       },
     );
