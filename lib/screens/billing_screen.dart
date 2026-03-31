@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
-import '../services/boost_service.dart';
-import '../services/payment_api.dart'; // we will create this small helper
+import '../services/payment_api.dart';
+import '../models/plan.dart';
 import '../utils/routes.dart';
 
 class BillingScreen extends StatefulWidget {
@@ -27,10 +27,11 @@ class _BillingScreenState extends State<BillingScreen> {
 
   Future<void> _loadMaintenanceStatus() async {
     final auth = Provider.of<AuthService>(context, listen: false);
-    final token = auth.currentUserToken;
-    final memberId = auth.currentUserId;
 
-    final result = await PaymentAPI.checkMaintenanceStatus(memberId, token);
+    final token = await auth.getToken();
+    final memberId = await auth.getMemberId();
+
+    final result = await PaymentAPI.checkMaintenanceStatus(memberId!, token!);
 
     setState(() {
       _allowed = result.allowed;
@@ -42,10 +43,12 @@ class _BillingScreenState extends State<BillingScreen> {
 
   Future<void> _payMaintenance() async {
     final auth = Provider.of<AuthService>(context, listen: false);
-    final token = auth.currentUserToken;
-    final memberId = auth.currentUserId;
 
-    final paymentUrl = await PaymentAPI.startMaintenancePayment(memberId, token);
+    final token = await auth.getToken();
+    final memberId = await auth.getMemberId();
+
+    final paymentUrl =
+        await PaymentAPI.startMaintenancePayment(memberId!, token!);
 
     Navigator.pushNamed(
       context,
@@ -75,7 +78,6 @@ class _BillingScreenState extends State<BillingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Status Card
             Card(
               child: ListTile(
                 leading: Icon(
@@ -97,7 +99,6 @@ class _BillingScreenState extends State<BillingScreen> {
 
             const SizedBox(height: 20),
 
-            // Next Due Date
             if (_nextDue != null)
               Card(
                 child: ListTile(
@@ -111,7 +112,6 @@ class _BillingScreenState extends State<BillingScreen> {
 
             const Spacer(),
 
-            // Pay Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

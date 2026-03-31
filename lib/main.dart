@@ -76,15 +76,8 @@ class MyApp extends StatelessWidget {
           AppRoutes.privacy: (context) => const PrivacyScreen(),
           AppRoutes.disclaimer: (context) => const DisclaimerScreen(),
 
-          // NEW ROUTES (STEP 2B COMPLETE)
-          AppRoutes.accountInfo: (context) {
-            final auth = Provider.of<AuthService>(context, listen: false);
-            final token = auth.currentUserToken;
-
-            return AccountInformationScreen(
-              boostService: BoostService(token),
-            );
-          },
+          // NEW ROUTES — SAFE VERSION
+          AppRoutes.accountInfo: (context) => const AccountInformationScreen(),
 
           AppRoutes.billing: (context) => const BillingScreen(),
           AppRoutes.settingsMenu: (context) => const SettingsMenuScreen(),

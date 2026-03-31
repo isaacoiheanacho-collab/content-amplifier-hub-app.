@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/routes.dart';
+import 'help_centre_screen.dart';
 
 class SettingsMenuScreen extends StatelessWidget {
   const SettingsMenuScreen({super.key});
@@ -46,7 +47,7 @@ class SettingsMenuScreen extends StatelessWidget {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const HelpCentreScreen()),
+                MaterialPageRoute(builder: (_) => HelpCentreScreen()),
               );
             },
           ),

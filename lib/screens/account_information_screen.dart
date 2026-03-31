@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../services/auth_service.dart';
 import '../services/boost_service.dart';
 import '../models/member_profile.dart';
 
 class AccountInformationScreen extends StatefulWidget {
-  final BoostService boostService;
-
-  const AccountInformationScreen({super.key, required this.boostService});
+  const AccountInformationScreen({super.key});
 
   @override
   State<AccountInformationScreen> createState() => _AccountInformationScreenState();
@@ -16,6 +17,7 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
   bool _saving = false;
 
   MemberProfile? _profile;
+  late BoostService _boostService;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
@@ -25,12 +27,21 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
   @override
   void initState() {
     super.initState();
+    _initService();
+  }
+
+  Future<void> _initService() async {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final token = await auth.getToken();
+
+    _boostService = BoostService(token!);
+
     _loadProfile();
   }
 
   Future<void> _loadProfile() async {
     try {
-      final profile = await widget.boostService.getMemberProfile();
+      final profile = await _boostService.getMemberProfile();
 
       setState(() {
         _profile = profile;
@@ -43,7 +54,7 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
     } catch (e) {
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load profile')),
+        const SnackBar(content: Text('Failed to load profile')),
       );
     }
   }
@@ -66,19 +77,15 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
       supportsReceived: _profile!.supportsReceived,
     );
 
-    final success = await widget.boostService.updateMemberProfile(updated);
+    final success = await _boostService.updateMemberProfile(updated);
 
     setState(() => _saving = false);
 
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Profile updated successfully')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update profile')),
-      );
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(success ? 'Profile updated successfully' : 'Failed to update profile'),
+      ),
+    );
   }
 
   @override
@@ -97,7 +104,6 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Profile Photo Preview
             if (_photoController.text.isNotEmpty)
               CircleAvatar(
                 radius: 45,
