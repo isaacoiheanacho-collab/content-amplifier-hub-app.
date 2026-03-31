@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../services/auth_service.dart';
 import '../utils/routes.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -9,43 +7,32 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: const Text('Profile')),
       body: ListView(
         children: [
           ListTile(
-            leading: const Icon(Icons.description),
-            title: const Text('Terms & Conditions'),
-            onTap: () => _openLink(context, 'https://your-terms-url.com'),
+            leading: const Icon(Icons.person),
+            title: const Text('Account Information'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () => Navigator.pushNamed(context, AppRoutes.accountInfo),
           ),
           ListTile(
-            leading: const Icon(Icons.privacy_tip),
-            title: const Text('Privacy Policy'),
-            onTap: () => _openLink(context, 'https://your-privacy-url.com'),
+            leading: const Icon(Icons.credit_card),
+            title: const Text('Billing'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () => Navigator.pushNamed(context, AppRoutes.billing),
+          ),
+          ListTile(
+            leading: const Icon(Icons.settings),
+            title: const Text('Settings'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () => Navigator.pushNamed(context, AppRoutes.settingsMenu),
           ),
           ListTile(
             leading: const Icon(Icons.logout),
-            title: const Text('Logout'),
-            onTap: () async {
-              final auth = Provider.of<AuthService>(context, listen: false);
-              await auth.logout();
-              Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _openLink(BuildContext context, String url) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Link'),
-        content: Text('Open $url'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            title: const Text('Login'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () => Navigator.pushNamed(context, AppRoutes.loginMenu),
           ),
         ],
       ),

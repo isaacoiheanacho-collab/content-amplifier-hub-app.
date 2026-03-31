@@ -9,8 +9,16 @@ class AppRoutes {
   static const submitBoost = '/submit-boost';
   static const myBoosts = '/my-boosts';
   static const supportQueue = '/support-queue';
+
+  // Existing
   static const settings = '/settings';
   static const terms = '/terms';
   static const privacy = '/privacy';
   static const disclaimer = '/disclaimer';
+
+  // NEW (for Profile Menu)
+  static const accountInfo = '/account-info';
+  static const billing = '/billing';
+  static const settingsMenu = '/settings-menu';
+  static const loginMenu = '/login-menu';
 }

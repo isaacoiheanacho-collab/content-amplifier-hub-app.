@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+
 import '../utils/constants.dart';
 import '../models/boost.dart';
 import '../models/member_stats.dart';
+import '../models/member_profile.dart';
 
 class BoostService {
   final String token;
@@ -78,7 +80,7 @@ class BoostService {
   }
 
   // ------------------------------------------------------------
-  // MEMBER STATS (UPDATED TO USE MODEL)
+  // MEMBER STATS
   // ------------------------------------------------------------
   Future<MemberStats> getMemberStats() async {
     final response = await http.get(
@@ -109,6 +111,39 @@ class BoostService {
     } else {
       throw Exception('Failed to load my boosts');
     }
+  }
+
+  // ------------------------------------------------------------
+  // GET MEMBER PROFILE
+  // ------------------------------------------------------------
+  Future<MemberProfile> getMemberProfile() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/member/profile'),
+      headers: {'Authorization': 'Bearer $token'},
+    ).timeout(const Duration(seconds: 60));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return MemberProfile.fromJson(data);
+    } else {
+      throw Exception('Failed to load member profile');
+    }
+  }
+
+  // ------------------------------------------------------------
+  // UPDATE MEMBER PROFILE
+  // ------------------------------------------------------------
+  Future<bool> updateMemberProfile(MemberProfile profile) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/member/profile/update'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(profile.toJson()),
+    ).timeout(const Duration(seconds: 60));
+
+    return response.statusCode == 200;
   }
 }
 
