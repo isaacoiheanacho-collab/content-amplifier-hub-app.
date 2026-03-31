@@ -26,42 +26,61 @@ class _BillingScreenState extends State<BillingScreen> {
   }
 
   Future<void> _loadMaintenanceStatus() async {
-    final auth = Provider.of<AuthService>(context, listen: false);
+    try {
+      final auth = Provider.of<AuthService>(context, listen: false);
 
-    final token = await auth.getToken();
-    final memberId = await auth.getMemberId();
+      final token = await auth.getToken();
+      final memberId = await auth.getMemberId();
 
-    final result = await PaymentAPI.checkMaintenanceStatus(memberId!, token!);
+      final result =
+          await PaymentAPI.checkMaintenanceStatus(memberId!, token!);
 
-    setState(() {
-      _allowed = result.allowed;
-      _reason = result.reason;
-      _nextDue = result.nextDue;
-      _loading = false;
-    });
+      setState(() {
+        _allowed = result.allowed;
+        _reason = result.reason;
+        _nextDue = result.nextDue;
+        _loading = false;
+      });
+    } catch (e) {
+      print("BillingScreen ERROR: $e");
+
+      setState(() {
+        _loading = false;
+        _allowed = false;
+        _reason = "Unable to load maintenance status";
+      });
+    }
   }
 
   Future<void> _payMaintenance() async {
-    final auth = Provider.of<AuthService>(context, listen: false);
+    try {
+      final auth = Provider.of<AuthService>(context, listen: false);
 
-    final token = await auth.getToken();
-    final memberId = await auth.getMemberId();
+      final token = await auth.getToken();
+      final memberId = await auth.getMemberId();
 
-    final paymentUrl =
-        await PaymentAPI.startMaintenancePayment(memberId!, token!);
+      final paymentUrl =
+          await PaymentAPI.startMaintenancePayment(memberId!, token!);
 
-    Navigator.pushNamed(
-      context,
-      AppRoutes.payment,
-      arguments: {
-        'paymentUrl': paymentUrl,
-        'plan': Plan(
-          name: "Monthly Maintenance Fee",
-          price: 500,
-          description: "Monthly maintenance subscription",
-        ),
-      },
-    );
+      Navigator.pushNamed(
+        context,
+        AppRoutes.payment,
+        arguments: {
+          'paymentUrl': paymentUrl,
+          'plan': Plan(
+            name: "Monthly Maintenance Fee",
+            price: 500,
+            description: "Monthly maintenance subscription",
+          ),
+        },
+      );
+    } catch (e) {
+      print("BillingScreen Payment ERROR: $e");
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Unable to start payment")),
+      );
+    }
   }
 
   @override
