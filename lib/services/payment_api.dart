@@ -4,9 +4,9 @@ import 'package:http/http.dart' as http;
 import '../utils/constants.dart';
 
 class PaymentAPI {
-  // -------------------------------
+  // ---------------------------------------------------------
   // CHECK MAINTENANCE STATUS
-  // -------------------------------
+  // ---------------------------------------------------------
   static Future<_MaintenanceStatus> checkMaintenanceStatus(
       int memberId, String token) async {
     final response = await http.get(
@@ -14,7 +14,13 @@ class PaymentAPI {
       headers: {'Authorization': 'Bearer $token'},
     );
 
-    print("Maintenance API response: ${response.body}");
+    print("Maintenance API status: ${response.statusCode}");
+    print("Maintenance API body: ${response.body}");
+
+    if (response.statusCode != 200) {
+      throw Exception(
+          'Maintenance status failed: ${response.statusCode} ${response.body}');
+    }
 
     final data = jsonDecode(response.body);
 
@@ -26,9 +32,9 @@ class PaymentAPI {
     );
   }
 
-  // -------------------------------
+  // ---------------------------------------------------------
   // START MAINTENANCE PAYMENT
-  // -------------------------------
+  // ---------------------------------------------------------
   static Future<String> startMaintenancePayment(
       int memberId, String token) async {
     final response = await http.post(
@@ -43,7 +49,13 @@ class PaymentAPI {
       }),
     );
 
-    print("Start Payment API response: ${response.body}");
+    print("Start Payment API status: ${response.statusCode}");
+    print("Start Payment API body: ${response.body}");
+
+    if (response.statusCode != 200) {
+      throw Exception(
+          'Start payment failed: ${response.statusCode} ${response.body}');
+    }
 
     final data = jsonDecode(response.body);
 
