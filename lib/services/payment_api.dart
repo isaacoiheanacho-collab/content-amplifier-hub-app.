@@ -4,7 +4,10 @@ import 'package:http/http.dart' as http;
 import '../utils/constants.dart';
 
 class PaymentAPI {
-  static Future<dynamic> checkMaintenanceStatus(
+  // -------------------------------
+  // CHECK MAINTENANCE STATUS
+  // -------------------------------
+  static Future<_MaintenanceStatus> checkMaintenanceStatus(
       int memberId, String token) async {
     final response = await http.get(
       Uri.parse('$baseUrl/member/maintenance-status/$memberId'),
@@ -16,23 +19,38 @@ class PaymentAPI {
     final data = jsonDecode(response.body);
 
     return _MaintenanceStatus(
-      allowed: data['allowed'],
+      allowed: data['allowed'] ?? false,
       reason: data['reason'],
       nextDue:
           data['nextDue'] != null ? DateTime.parse(data['nextDue']) : null,
     );
   }
 
+  // -------------------------------
+  // START MAINTENANCE PAYMENT
+  // -------------------------------
   static Future<String> startMaintenancePayment(
       int memberId, String token) async {
     final response = await http.post(
       Uri.parse('$baseUrl/payment/maintenance'),
-      headers: {'Authorization': 'Bearer $token'},
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json'
+      },
+      body: jsonEncode({
+        "memberId": memberId,
+        "type": "maintenance",
+      }),
     );
 
     print("Start Payment API response: ${response.body}");
 
     final data = jsonDecode(response.body);
+
+    if (data['paymentUrl'] == null) {
+      throw Exception("Payment URL missing from backend");
+    }
+
     return data['paymentUrl'];
   }
 }
