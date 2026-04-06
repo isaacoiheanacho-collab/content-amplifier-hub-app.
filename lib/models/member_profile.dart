@@ -5,6 +5,10 @@ class MemberProfile {
   final String? region;
   final String? profilePhotoUrl;
 
+  final String? youtubeUrl;
+  final String? facebookUrl;
+  final String? tiktokUrl;
+
   final bool membershipActive;
   final int monthlyBoostsUsed;
   final int maxMonthlyBoosts;
@@ -18,6 +22,9 @@ class MemberProfile {
     this.phone,
     this.region,
     this.profilePhotoUrl,
+    this.youtubeUrl,
+    this.facebookUrl,
+    this.tiktokUrl,
     required this.membershipActive,
     required this.monthlyBoostsUsed,
     required this.maxMonthlyBoosts,
@@ -32,6 +39,9 @@ class MemberProfile {
       phone: json['phone'],
       region: json['region'],
       profilePhotoUrl: json['profile_photo_url'],
+      youtubeUrl: json['youtube_url'],
+      facebookUrl: json['facebook_url'],
+      tiktokUrl: json['tiktok_url'],
       membershipActive: json['membership_active'] ?? false,
       monthlyBoostsUsed: json['monthly_boosts_used'] ?? 0,
       maxMonthlyBoosts: json['max_monthly_boosts'] ?? 20,
@@ -46,6 +56,9 @@ class MemberProfile {
       'phone': phone,
       'region': region,
       'profile_photo_url': profilePhotoUrl,
+      'youtube_url': youtubeUrl,
+      'facebook_url': facebookUrl,
+      'tiktok_url': tiktokUrl,
     };
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 import '../utils/constants.dart';
@@ -144,6 +145,32 @@ class BoostService {
     ).timeout(const Duration(seconds: 60));
 
     return response.statusCode == 200;
+  }
+
+  // ------------------------------------------------------------
+  // UPLOAD PROFILE PHOTO (CLOUDINARY)
+  // ------------------------------------------------------------
+  Future<String> uploadProfilePhoto(File file) async {
+    final uri = Uri.parse('$baseUrl/member/profile/upload-photo');
+
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $token'
+      ..files.add(
+        await http.MultipartFile.fromPath(
+          'photo',
+          file.path,
+        ),
+      );
+
+    final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['url'];
+    } else {
+      throw Exception('Failed to upload profile photo');
+    }
   }
 }
 
