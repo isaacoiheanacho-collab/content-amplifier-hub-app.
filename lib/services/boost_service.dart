@@ -12,9 +12,6 @@ class BoostService {
 
   BoostService(this.token);
 
-  // ------------------------------------------------------------
-  // SUBMIT BOOST
-  // ------------------------------------------------------------
   Future<BoostSubmissionResult> submitBoost({
     required int memberId,
     required String contentUrl,
@@ -38,17 +35,12 @@ class BoostService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       return BoostSubmissionResult(success: true, slot: data['slot']);
-    } else if (response.statusCode == 400) {
-      final error = jsonDecode(response.body)['error'];
-      return BoostSubmissionResult(success: false, message: error);
     } else {
-      return BoostSubmissionResult(success: false, message: 'Unknown error');
+      final error = jsonDecode(response.body)['error'] ?? 'Unknown error';
+      return BoostSubmissionResult(success: false, message: error);
     }
   }
 
-  // ------------------------------------------------------------
-  // LIVE BOOSTS
-  // ------------------------------------------------------------
   Future<List<Boost>> getLiveBoosts({int limit = 20}) async {
     final response = await http.get(
       Uri.parse('$baseUrl/boosts/live?limit=$limit'),
@@ -63,9 +55,6 @@ class BoostService {
     }
   }
 
-  // ------------------------------------------------------------
-  // SUPPORT ACTIONS
-  // ------------------------------------------------------------
   Future<void> recordSupportClick(int boostId) async {
     await http.post(
       Uri.parse('$baseUrl/boosts/$boostId/support'),
@@ -80,9 +69,6 @@ class BoostService {
     );
   }
 
-  // ------------------------------------------------------------
-  // MEMBER STATS
-  // ------------------------------------------------------------
   Future<MemberStats> getMemberStats() async {
     final response = await http.get(
       Uri.parse('$baseUrl/member/stats'),
@@ -97,9 +83,6 @@ class BoostService {
     }
   }
 
-  // ------------------------------------------------------------
-  // MY BOOSTS
-  // ------------------------------------------------------------
   Future<List<Boost>> getMyBoosts() async {
     final response = await http.get(
       Uri.parse('$baseUrl/member/boosts'),
@@ -114,9 +97,6 @@ class BoostService {
     }
   }
 
-  // ------------------------------------------------------------
-  // GET MEMBER PROFILE
-  // ------------------------------------------------------------
   Future<MemberProfile> getMemberProfile() async {
     final response = await http.get(
       Uri.parse('$baseUrl/member/profile'),
@@ -131,9 +111,7 @@ class BoostService {
     }
   }
 
-  // ------------------------------------------------------------
-  // UPDATE MEMBER PROFILE (MODIFIED FOR MULTIPART)
-  // ------------------------------------------------------------
+  // UPDATED: Combined profile and photo update
   Future<bool> updateMemberProfile(MemberProfile profile, {File? imageFile}) async {
     try {
       final uri = Uri.parse('$baseUrl/member/profile/update');
@@ -141,7 +119,7 @@ class BoostService {
 
       request.headers['Authorization'] = 'Bearer $token';
 
-      // Add text fields
+      // Text fields
       request.fields['name'] = profile.name ?? '';
       request.fields['phone'] = profile.phone ?? '';
       request.fields['region'] = profile.region ?? '';
@@ -150,7 +128,7 @@ class BoostService {
       request.fields['tiktok_url'] = profile.tiktokUrl ?? '';
       request.fields['profile_photo_url'] = profile.profilePhotoUrl ?? '';
 
-      // Add image if available
+      // Image file
       if (imageFile != null) {
         request.files.add(
           await http.MultipartFile.fromPath('photo', imageFile.path),
@@ -160,6 +138,9 @@ class BoostService {
       final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
       final response = await http.Response.fromStream(streamedResponse);
 
+      if (response.statusCode != 200) {
+        print("Update Failed: ${response.body}");
+      }
       return response.statusCode == 200;
     } catch (e) {
       print("Update Profile Error: $e");
@@ -167,24 +148,18 @@ class BoostService {
     }
   }
 
-  // ------------------------------------------------------------
-  // UPLOAD PROFILE PHOTO (KEEPING STANDALONE FOR BACKUP)
-  // ------------------------------------------------------------
+  // Backup standalone upload
   Future<String> uploadProfilePhoto(File file) async {
     final uri = Uri.parse('$baseUrl/member/profile/upload-photo');
-
     final request = http.MultipartRequest('POST', uri)
       ..headers['Authorization'] = 'Bearer $token'
-      ..files.add(
-        await http.MultipartFile.fromPath('photo', file.path),
-      );
+      ..files.add(await http.MultipartFile.fromPath('photo', file.path));
 
     final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
     final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['url'];
+      return jsonDecode(response.body)['url'];
     } else {
       throw Exception('Failed to upload profile photo');
     }
@@ -195,6 +170,5 @@ class BoostSubmissionResult {
   final bool success;
   final String? slot;
   final String? message;
-
   BoostSubmissionResult({required this.success, this.slot, this.message});
 }

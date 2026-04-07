@@ -22,13 +22,11 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
   late BoostService _boostService;
 
   final ImagePicker _picker = ImagePicker();
-  File? _selectedImageFile; // Tracks the newly picked local file
+  File? _selectedImageFile;
 
-  // Controllers
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _regionController = TextEditingController();
-
   final TextEditingController _youtubeController = TextEditingController();
   final TextEditingController _facebookController = TextEditingController();
   final TextEditingController _tiktokController = TextEditingController();
@@ -44,49 +42,41 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
   Future<void> _initService() async {
     final auth = Provider.of<AuthService>(context, listen: false);
     final token = await auth.getToken();
-    _boostService = BoostService(token!);
-    _loadProfile();
+    if (token != null) {
+      _boostService = BoostService(token);
+      _loadProfile();
+    }
   }
 
   Future<void> _loadProfile() async {
     try {
       final profile = await _boostService.getMemberProfile();
-
       setState(() {
         _profile = profile;
         _nameController.text = profile.name ?? '';
         _phoneController.text = profile.phone ?? '';
         _regionController.text = profile.region ?? '';
-
         _youtubeController.text = profile.youtubeUrl ?? '';
         _facebookController.text = profile.facebookUrl ?? '';
         _tiktokController.text = profile.tiktokUrl ?? '';
-
         _photoUrl = profile.profilePhotoUrl;
         _loading = false;
       });
     } catch (e) {
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to load profile')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load profile')),
+        );
+      }
     }
   }
 
-  // ------------------------------------------------------------
-  // PHOTO SELECTION
-  // ------------------------------------------------------------
   Future<void> _pickPhoto(ImageSource source) async {
-    final XFile? file = await _picker.pickImage(
-      source: source,
-      imageQuality: 80,
-    );
-
-    if (file == null) return;
-
-    setState(() {
-      _selectedImageFile = File(file.path);
-    });
+    final XFile? file = await _picker.pickImage(source: source, imageQuality: 70);
+    if (file != null) {
+      setState(() => _selectedImageFile = File(file.path));
+    }
   }
 
   void _showPhotoOptions() {
@@ -98,18 +88,12 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
             ListTile(
               leading: const Icon(Icons.camera_alt),
               title: const Text("Take Photo"),
-              onTap: () {
-                Navigator.pop(context);
-                _pickPhoto(ImageSource.camera);
-              },
+              onTap: () { Navigator.pop(context); _pickPhoto(ImageSource.camera); },
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
               title: const Text("Choose from Gallery"),
-              onTap: () {
-                Navigator.pop(context);
-                _pickPhoto(ImageSource.gallery);
-              },
+              onTap: () { Navigator.pop(context); _pickPhoto(ImageSource.gallery); },
             ),
           ],
         ),
@@ -117,12 +101,8 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
     );
   }
 
-  // ------------------------------------------------------------
-  // SAVE PROFILE
-  // ------------------------------------------------------------
   Future<void> _saveProfile() async {
     if (_profile == null) return;
-
     setState(() => _saving = true);
 
     final updated = MemberProfile(
@@ -141,42 +121,28 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
       supportsReceived: _profile!.supportsReceived,
     );
 
-    // Now we pass both the profile data AND the local file to the service
-    final success = await _boostService.updateMemberProfile(
-      updated, 
-      imageFile: _selectedImageFile
-    );
+    final success = await _boostService.updateMemberProfile(updated, imageFile: _selectedImageFile);
 
-    setState(() {
-      _saving = false;
-      if (success) {
-        _selectedImageFile = null; // Reset staged file on success
-        _loadProfile(); // Refresh profile to get new Cloudinary URL
-      }
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(success ? 'Profile updated successfully' : 'Failed to update profile'),
-      ),
-    );
-  }
-
-  // ------------------------------------------------------------
-  // UI
-  // ------------------------------------------------------------
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+    if (mounted) {
+      setState(() {
+        _saving = false;
+        if (success) {
+          _selectedImageFile = null;
+          _loadProfile(); // Refresh to get Cloudinary URL
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(success ? 'Profile updated successfully' : 'Failed to update profile')),
       );
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Account Information"),
-      ),
+      appBar: AppBar(title: const Text("Account Information")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -185,51 +151,33 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
               onTap: _saving ? null : _showPhotoOptions,
               child: CircleAvatar(
                 radius: 50,
-                backgroundColor: Colors.grey[300],
+                backgroundColor: Colors.grey[200],
                 backgroundImage: _selectedImageFile != null
                     ? FileImage(_selectedImageFile!) as ImageProvider
-                    : (_photoUrl != null && _photoUrl!.isNotEmpty
-                        ? NetworkImage(_photoUrl!)
-                        : null),
+                    : (_photoUrl != null && _photoUrl!.isNotEmpty ? NetworkImage(_photoUrl!) : null),
                 child: (_photoUrl == null && _selectedImageFile == null)
-                    ? const Icon(Icons.person, size: 50, color: Colors.white)
+                    ? const Icon(Icons.person, size: 50, color: Colors.grey)
                     : null,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text("Tap to change photo", style: TextStyle(fontSize: 12, color: Colors.grey)),
-
             const SizedBox(height: 20),
-
             _buildField(_nameController, "Full Name"),
             const SizedBox(height: 16),
-
             _buildField(_phoneController, "Phone Number"),
             const SizedBox(height: 16),
-
-            _buildField(_regionController, "Region / State"),
+            _buildField(_regionController, "Region"),
             const SizedBox(height: 16),
-
-            _buildField(_youtubeController, "YouTube Profile Link"),
+            _buildField(_youtubeController, "YouTube Link"),
             const SizedBox(height: 16),
-
-            _buildField(_facebookController, "Facebook Profile Link"),
+            _buildField(_facebookController, "Facebook Link"),
             const SizedBox(height: 16),
-
-            _buildField(_tiktokController, "TikTok Profile Link"),
+            _buildField(_tiktokController, "TikTok Link"),
             const SizedBox(height: 30),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _saving ? null : _saveProfile,
-                child: _saving
-                    ? const SizedBox(
-                        height: 20, 
-                        width: 20, 
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                      )
-                    : const Text("Save Changes"),
+                child: _saving ? const CircularProgressIndicator() : const Text("Save Changes"),
               ),
             ),
           ],
@@ -241,10 +189,7 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
   Widget _buildField(TextEditingController controller, String label) {
     return TextField(
       controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
+      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
     );
   }
 }
