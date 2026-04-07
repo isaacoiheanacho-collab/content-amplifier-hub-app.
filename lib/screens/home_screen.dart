@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../services/auth_service.dart';
 import '../services/boost_service.dart';
 import '../models/member_stats.dart';
+import '../models/member_profile.dart';
 import '../utils/theme.dart';
 import '../utils/routes.dart';
 import '../widgets/profile_avatar.dart';
@@ -16,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   MemberStats? _stats;
+  MemberProfile? _profile;
   bool _isLoading = true;
   String? _error;
 
@@ -23,11 +26,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadStats();
+      _loadData();
     });
   }
 
-  Future<void> _loadStats() async {
+  Future<void> _loadData() async {
     setState(() {
       _isLoading = true;
       _error = null;
@@ -43,10 +46,13 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       final boostService = BoostService(token);
+
       final stats = await boostService.getMemberStats();
+      final profile = await boostService.getMemberProfile();
 
       setState(() {
         _stats = stats;
+        _profile = profile;
         _isLoading = false;
       });
     } catch (e) {
@@ -77,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Text('Error loading data: $_error'),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: _loadStats,
+                onPressed: _loadData,
                 child: const Text('Retry'),
               ),
             ],
@@ -86,13 +92,14 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    if (_stats == null) {
+    if (_stats == null || _profile == null) {
       return const Scaffold(
         body: Center(child: Text('No data available')),
       );
     }
 
     final stats = _stats!;
+    final profile = _profile!;
     final boostsLeft = stats.maxMonthlyBoosts - stats.monthlyBoostsUsed;
 
     return Scaffold(
@@ -102,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadStats,
+            onPressed: _loadData,
           ),
         ],
       ),
@@ -113,7 +120,10 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Row(
               children: [
-                const ProfileAvatar(radius: 30),
+                ProfileAvatar(
+                  radius: 30,
+                  imageUrl: profile.profilePhotoUrl,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
