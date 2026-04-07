@@ -17,12 +17,12 @@ class AccountInformationScreen extends StatefulWidget {
 class _AccountInformationScreenState extends State<AccountInformationScreen> {
   bool _loading = true;
   bool _saving = false;
-  bool _uploadingPhoto = false;
 
   MemberProfile? _profile;
   late BoostService _boostService;
 
   final ImagePicker _picker = ImagePicker();
+  File? _selectedImageFile; // Tracks the newly picked local file
 
   // Controllers
   final TextEditingController _nameController = TextEditingController();
@@ -44,9 +44,7 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
   Future<void> _initService() async {
     final auth = Provider.of<AuthService>(context, listen: false);
     final token = await auth.getToken();
-
     _boostService = BoostService(token!);
-
     _loadProfile();
   }
 
@@ -76,50 +74,19 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
   }
 
   // ------------------------------------------------------------
-  // PHOTO UPLOAD
+  // PHOTO SELECTION
   // ------------------------------------------------------------
-  Future<void> _pickPhoto() async {
+  Future<void> _pickPhoto(ImageSource source) async {
     final XFile? file = await _picker.pickImage(
-      source: ImageSource.gallery,
+      source: source,
       imageQuality: 80,
     );
 
     if (file == null) return;
 
-    await _uploadPhoto(File(file.path));
-  }
-
-  Future<void> _takePhoto() async {
-    final XFile? file = await _picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 80,
-    );
-
-    if (file == null) return;
-
-    await _uploadPhoto(File(file.path));
-  }
-
-  Future<void> _uploadPhoto(File file) async {
-    setState(() => _uploadingPhoto = true);
-
-    try {
-      final url = await _boostService.uploadProfilePhoto(file);
-
-      setState(() {
-        _photoUrl = url;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Photo updated successfully')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to upload photo')),
-      );
-    }
-
-    setState(() => _uploadingPhoto = false);
+    setState(() {
+      _selectedImageFile = File(file.path);
+    });
   }
 
   void _showPhotoOptions() {
@@ -133,7 +100,7 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
               title: const Text("Take Photo"),
               onTap: () {
                 Navigator.pop(context);
-                _takePhoto();
+                _pickPhoto(ImageSource.camera);
               },
             ),
             ListTile(
@@ -141,7 +108,7 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
               title: const Text("Choose from Gallery"),
               onTap: () {
                 Navigator.pop(context);
-                _pickPhoto();
+                _pickPhoto(ImageSource.gallery);
               },
             ),
           ],
@@ -174,9 +141,19 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
       supportsReceived: _profile!.supportsReceived,
     );
 
-    final success = await _boostService.updateMemberProfile(updated);
+    // Now we pass both the profile data AND the local file to the service
+    final success = await _boostService.updateMemberProfile(
+      updated, 
+      imageFile: _selectedImageFile
+    );
 
-    setState(() => _saving = false);
+    setState(() {
+      _saving = false;
+      if (success) {
+        _selectedImageFile = null; // Reset staged file on success
+        _loadProfile(); // Refresh profile to get new Cloudinary URL
+      }
+    });
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -205,23 +182,22 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
         child: Column(
           children: [
             GestureDetector(
-              onTap: _uploadingPhoto ? null : _showPhotoOptions,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundImage:
-                        _photoUrl != null ? NetworkImage(_photoUrl!) : null,
-                    child: _photoUrl == null
-                        ? const Icon(Icons.person, size: 50)
-                        : null,
-                  ),
-                  if (_uploadingPhoto)
-                    const CircularProgressIndicator(),
-                ],
+              onTap: _saving ? null : _showPhotoOptions,
+              child: CircleAvatar(
+                radius: 50,
+                backgroundColor: Colors.grey[300],
+                backgroundImage: _selectedImageFile != null
+                    ? FileImage(_selectedImageFile!) as ImageProvider
+                    : (_photoUrl != null && _photoUrl!.isNotEmpty
+                        ? NetworkImage(_photoUrl!)
+                        : null),
+                child: (_photoUrl == null && _selectedImageFile == null)
+                    ? const Icon(Icons.person, size: 50, color: Colors.white)
+                    : null,
               ),
             ),
+            const SizedBox(height: 8),
+            const Text("Tap to change photo", style: TextStyle(fontSize: 12, color: Colors.grey)),
 
             const SizedBox(height: 20),
 
@@ -248,7 +224,11 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
               child: ElevatedButton(
                 onPressed: _saving ? null : _saveProfile,
                 child: _saving
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? const SizedBox(
+                        height: 20, 
+                        width: 20, 
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                      )
                     : const Text("Save Changes"),
               ),
             ),

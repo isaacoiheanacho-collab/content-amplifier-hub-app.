@@ -132,23 +132,43 @@ class BoostService {
   }
 
   // ------------------------------------------------------------
-  // UPDATE MEMBER PROFILE
+  // UPDATE MEMBER PROFILE (MODIFIED FOR MULTIPART)
   // ------------------------------------------------------------
-  Future<bool> updateMemberProfile(MemberProfile profile) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/member/profile/update'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode(profile.toJson()),
-    ).timeout(const Duration(seconds: 60));
+  Future<bool> updateMemberProfile(MemberProfile profile, {File? imageFile}) async {
+    try {
+      final uri = Uri.parse('$baseUrl/member/profile/update');
+      final request = http.MultipartRequest('POST', uri);
 
-    return response.statusCode == 200;
+      request.headers['Authorization'] = 'Bearer $token';
+
+      // Add text fields
+      request.fields['name'] = profile.name ?? '';
+      request.fields['phone'] = profile.phone ?? '';
+      request.fields['region'] = profile.region ?? '';
+      request.fields['youtube_url'] = profile.youtubeUrl ?? '';
+      request.fields['facebook_url'] = profile.facebookUrl ?? '';
+      request.fields['tiktok_url'] = profile.tiktokUrl ?? '';
+      request.fields['profile_photo_url'] = profile.profilePhotoUrl ?? '';
+
+      // Add image if available
+      if (imageFile != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath('photo', imageFile.path),
+        );
+      }
+
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
+      final response = await http.Response.fromStream(streamedResponse);
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print("Update Profile Error: $e");
+      return false;
+    }
   }
 
   // ------------------------------------------------------------
-  // UPLOAD PROFILE PHOTO (CLOUDINARY)
+  // UPLOAD PROFILE PHOTO (KEEPING STANDALONE FOR BACKUP)
   // ------------------------------------------------------------
   Future<String> uploadProfilePhoto(File file) async {
     final uri = Uri.parse('$baseUrl/member/profile/upload-photo');
@@ -156,10 +176,7 @@ class BoostService {
     final request = http.MultipartRequest('POST', uri)
       ..headers['Authorization'] = 'Bearer $token'
       ..files.add(
-        await http.MultipartFile.fromPath(
-          'photo',
-          file.path,
-        ),
+        await http.MultipartFile.fromPath('photo', file.path),
       );
 
     final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
@@ -174,9 +191,6 @@ class BoostService {
   }
 }
 
-// ------------------------------------------------------------
-// BOOST SUBMISSION RESULT MODEL
-// ------------------------------------------------------------
 class BoostSubmissionResult {
   final bool success;
   final String? slot;
