@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
-import '../utils/theme.dart';
 import '../utils/routes.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/text_input_field.dart';
@@ -20,11 +19,31 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _login() async {
     setState(() => _isLoading = true);
+
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
-      final result = await auth.login(_emailController.text, _passwordController.text);
+      final result = await auth.login(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+
       if (result['success']) {
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
+        final member = result['member'];
+
+        if (!member.profileComplete) {
+          Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
+        } else if (!member.paymentComplete) {
+          Navigator.pushReplacementNamed(
+            context,
+            AppRoutes.payment,
+            arguments: {
+              'paymentUrl': null, // login does not return paymentUrl
+              'plan': null,
+            },
+          );
+        } else {
+          Navigator.pushReplacementNamed(context, AppRoutes.home);
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result['error'])),
@@ -52,8 +71,6 @@ class _LoginScreenState extends State<LoginScreen> {
               controller: _emailController,
               label: 'Email',
               icon: Icons.email,
-              keyboardType: TextInputType.emailAddress,
-              validator: (value) => value == null || value.isEmpty ? 'Email required' : null,
             ),
             const SizedBox(height: 16),
             TextInputField(
@@ -61,7 +78,6 @@ class _LoginScreenState extends State<LoginScreen> {
               label: 'Password',
               icon: Icons.lock,
               obscureText: true,
-              validator: (value) => value == null || value.isEmpty ? 'Password required' : null,
             ),
             const SizedBox(height: 24),
             PrimaryButton(
@@ -70,11 +86,9 @@ class _LoginScreenState extends State<LoginScreen> {
               isLoading: _isLoading,
             ),
             const SizedBox(height: 16),
-            Center(
-              child: TextButton(
-                onPressed: () => Navigator.pushNamed(context, AppRoutes.register),
-                child: const Text('Don\'t have an account? Register'),
-              ),
+            TextButton(
+              onPressed: () => Navigator.pushNamed(context, AppRoutes.register),
+              child: const Text("Don't have an account? Register"),
             ),
           ],
         ),

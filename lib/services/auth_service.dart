@@ -17,12 +17,17 @@ class AuthService {
             body: jsonEncode({'email': email, 'password': password}),
           )
           .timeout(const Duration(seconds: 60));
+
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
+
+        final member = Member.fromJson(data['member']);
+
         return {
           'success': true,
-          'member': Member.fromJson(data['member']),
+          'member': member,
           'paymentUrl': data['paymentUrl'],
+          'amountToPay': data['amountToPay'],
         };
       } else {
         final error = jsonDecode(response.body)['error'];
@@ -42,11 +47,15 @@ class AuthService {
             body: jsonEncode({'email': email, 'password': password}),
           )
           .timeout(const Duration(seconds: 60));
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+
         final member = Member.fromJson(data['member']);
+
         await storage.write(key: 'token', value: data['token']);
-        await storage.write(key: 'memberId', value: member.id.toString()); // store memberId
+        await storage.write(key: 'memberId', value: member.id.toString());
+
         return {
           'success': true,
           'member': member,
