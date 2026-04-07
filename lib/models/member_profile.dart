@@ -4,7 +4,6 @@ class MemberProfile {
   final String? phone;
   final String? region;
   final String? profilePhotoUrl;
-
   final String? youtubeUrl;
   final String? facebookUrl;
   final String? tiktokUrl;
@@ -12,7 +11,6 @@ class MemberProfile {
   final bool membershipActive;
   final int monthlyBoostsUsed;
   final int maxMonthlyBoosts;
-
   final int supportsGiven;
   final int supportsReceived;
 
@@ -33,21 +31,30 @@ class MemberProfile {
   });
 
   factory MemberProfile.fromJson(Map<String, dynamic> json) {
+    // Helper to safely parse strings that might be null
+    String? s(dynamic value) => (value == null || value.toString() == 'null') ? null : value.toString();
+
     return MemberProfile(
-      email: json['email'] ?? '',
-      name: json['name'] as String?,
-      phone: json['phone'] as String?,
-      region: json['region'] as String?,
-      profilePhotoUrl: json['profile_photo_url'] as String?,
-      youtubeUrl: json['youtube_url'] as String?,
-      facebookUrl: json['facebook_url'] as String?,
-      tiktokUrl: json['tiktok_url'] as String?,
+      email: json['email']?.toString() ?? '',
+      name: s(json['name']),
+      phone: s(json['phone']),
+      region: s(json['region']),
+      profilePhotoUrl: s(json['profile_photo_url']),
+      youtubeUrl: s(json['youtube_url']),
+      facebookUrl: s(json['facebook_url']),
+      tiktokUrl: s(json['tiktok_url']),
       membershipActive: json['membership_active'] == true,
-      monthlyBoostsUsed: json['monthly_boosts_used'] ?? 0,
-      maxMonthlyBoosts: json['max_monthly_boosts'] ?? 20,
-      supportsGiven: json['supports_given'] ?? 0,
-      supportsReceived: json['supports_received'] ?? 0,
+      monthlyBoostsUsed: _toInt(json['monthly_boosts_used']),
+      maxMonthlyBoosts: _toInt(json['max_monthly_boosts'], defaultValue: 20),
+      supportsGiven: _toInt(json['supports_given']),
+      supportsReceived: _toInt(json['supports_received']),
     );
+  }
+
+  static int _toInt(dynamic value, {int defaultValue = 0}) {
+    if (value == null) return defaultValue;
+    if (value is int) return value;
+    return int.tryParse(value.toString()) ?? defaultValue;
   }
 
   Map<String, dynamic> toJson() {

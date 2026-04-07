@@ -12,6 +12,9 @@ class BoostService {
 
   BoostService(this.token);
 
+  // ------------------------------------------------------------
+  // SUBMIT BOOST
+  // ------------------------------------------------------------
   Future<BoostSubmissionResult> submitBoost({
     required int memberId,
     required String contentUrl,
@@ -41,6 +44,9 @@ class BoostService {
     }
   }
 
+  // ------------------------------------------------------------
+  // LIVE BOOSTS
+  // ------------------------------------------------------------
   Future<List<Boost>> getLiveBoosts({int limit = 20}) async {
     final response = await http.get(
       Uri.parse('$baseUrl/boosts/live?limit=$limit'),
@@ -55,6 +61,9 @@ class BoostService {
     }
   }
 
+  // ------------------------------------------------------------
+  // SUPPORT ACTIONS
+  // ------------------------------------------------------------
   Future<void> recordSupportClick(int boostId) async {
     await http.post(
       Uri.parse('$baseUrl/boosts/$boostId/support'),
@@ -69,6 +78,9 @@ class BoostService {
     );
   }
 
+  // ------------------------------------------------------------
+  // MEMBER STATS
+  // ------------------------------------------------------------
   Future<MemberStats> getMemberStats() async {
     final response = await http.get(
       Uri.parse('$baseUrl/member/stats'),
@@ -83,6 +95,9 @@ class BoostService {
     }
   }
 
+  // ------------------------------------------------------------
+  // MY BOOSTS
+  // ------------------------------------------------------------
   Future<List<Boost>> getMyBoosts() async {
     final response = await http.get(
       Uri.parse('$baseUrl/member/boosts'),
@@ -97,6 +112,9 @@ class BoostService {
     }
   }
 
+  // ------------------------------------------------------------
+  // GET MEMBER PROFILE
+  // ------------------------------------------------------------
   Future<MemberProfile> getMemberProfile() async {
     final response = await http.get(
       Uri.parse('$baseUrl/member/profile'),
@@ -111,7 +129,9 @@ class BoostService {
     }
   }
 
-  // UPDATED: Combined profile and photo update
+  // ------------------------------------------------------------
+  // UPDATE MEMBER PROFILE (COMBINED TEXT + PHOTO)
+  // ------------------------------------------------------------
   Future<bool> updateMemberProfile(MemberProfile profile, {File? imageFile}) async {
     try {
       final uri = Uri.parse('$baseUrl/member/profile/update');
@@ -119,7 +139,7 @@ class BoostService {
 
       request.headers['Authorization'] = 'Bearer $token';
 
-      // Text fields
+      // TEXT FIELDS: Using snake_case keys to match your DB columns exactly
       request.fields['name'] = profile.name ?? '';
       request.fields['phone'] = profile.phone ?? '';
       request.fields['region'] = profile.region ?? '';
@@ -128,7 +148,7 @@ class BoostService {
       request.fields['tiktok_url'] = profile.tiktokUrl ?? '';
       request.fields['profile_photo_url'] = profile.profilePhotoUrl ?? '';
 
-      // Image file
+      // IMAGE FILE: Key 'photo' must match upload.single('photo') on backend
       if (imageFile != null) {
         request.files.add(
           await http.MultipartFile.fromPath('photo', imageFile.path),
@@ -139,29 +159,37 @@ class BoostService {
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode != 200) {
-        print("Update Failed: ${response.body}");
+        print("Update Profile Failed. Status: ${response.statusCode}");
+        print("Response Body: ${response.body}");
       }
+
       return response.statusCode == 200;
     } catch (e) {
-      print("Update Profile Error: $e");
+      print("Update Profile Exception: $e");
       return false;
     }
   }
 
-  // Backup standalone upload
+  // ------------------------------------------------------------
+  // STANDALONE PHOTO UPLOAD (OPTIONAL BACKUP)
+  // ------------------------------------------------------------
   Future<String> uploadProfilePhoto(File file) async {
     final uri = Uri.parse('$baseUrl/member/profile/upload-photo');
+
     final request = http.MultipartRequest('POST', uri)
       ..headers['Authorization'] = 'Bearer $token'
-      ..files.add(await http.MultipartFile.fromPath('photo', file.path));
+      ..files.add(
+        await http.MultipartFile.fromPath('photo', file.path),
+      );
 
     final streamedResponse = await request.send().timeout(const Duration(seconds: 60));
     final response = await http.Response.fromStream(streamedResponse);
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body)['url'];
+      final data = jsonDecode(response.body);
+      return data['url'];
     } else {
-      throw Exception('Failed to upload profile photo');
+      throw Exception('Failed to upload profile photo: ${response.body}');
     }
   }
 }
@@ -170,5 +198,6 @@ class BoostSubmissionResult {
   final bool success;
   final String? slot;
   final String? message;
+
   BoostSubmissionResult({required this.success, this.slot, this.message});
 }
