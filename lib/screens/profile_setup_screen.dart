@@ -10,7 +10,6 @@ import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../widgets/primary_button.dart';
 import '../utils/theme.dart';
-import '../models/plan.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -159,11 +158,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         AppRoutes.payment,
         arguments: {
           "paymentUrl": payData["paymentUrl"],
-          "plan": Plan(
-            name: "Yearly Membership",
-            price: 50, // USD
-            description: "Access to the platform for 12 months",
-          ),
+          "amount": payData["amountToPay"] ?? 50,
+          "currency": payData["currency"] ?? "USD",
         },
       );
     } catch (e) {

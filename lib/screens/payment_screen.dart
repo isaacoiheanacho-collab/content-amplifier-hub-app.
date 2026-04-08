@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../utils/theme.dart';
-import '../models/plan.dart';
 
 class PaymentScreen extends StatefulWidget {
   final String paymentUrl;
-  final Plan plan;
+  final double amount;
+  final String currency;
 
-  const PaymentScreen({super.key, required this.paymentUrl, required this.plan});
+  const PaymentScreen({
+    super.key,
+    required this.paymentUrl,
+    required this.amount,
+    required this.currency,
+  });
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -29,8 +34,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
           },
           onPageFinished: (url) {
             setState(() => _isLoading = false);
+
+            // Detect callback URL
             if (url.contains('/auth/payment/callback')) {
-              // Payment completed, navigate to home
               Navigator.pushReplacementNamed(context, '/home');
             }
           },
@@ -59,12 +65,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        widget.plan.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      const Text(
+                        "Yearly Membership",
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        '${widget.plan.price} NGN/year',
+                        '${widget.currency} ${widget.amount}/year',
                         style: TextStyle(color: AppColors.textSecondary),
                       ),
                     ],
