@@ -5,16 +5,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:http/http.dart' as http;
 
-import '../utils/theme.dart';
-import '../utils/routes.dart';
-import '../utils/constants.dart';
-import '../widgets/primary_button.dart';
-import '../widgets/text_input_field.dart';
-import '../models/social_profile.dart';
-import '../models/member_profile.dart';
 import '../services/auth_service.dart';
-import '../services/boost_service.dart';
-import 'payment_screen.dart';
+import '../utils/constants.dart';
+import '../utils/routes.dart';
+import '../widgets/primary_button.dart';
+import '../utils/theme.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -25,272 +20,241 @@ class ProfileSetupScreen extends StatefulWidget {
 
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
+
   String? _selectedCountry;
+  String? _selectedState;
+
   File? _profileImage;
-  bool _isLoading = false;
+  bool _isSaving = false;
 
-  final List<SocialProfile> _socials = [];
-  final List<String> _selectedInterests = [];
+  final ImagePicker _picker = ImagePicker();
 
-  final List<String> _countries = [
-    'United States', 'United Kingdom', 'Canada', 'Nigeria', 'Kenya', 'South Africa', 'Ghana', 'Other'
-  ];
-  final List<String> _interestOptions = [
-    'Music', 'Comedy', 'Business', 'Faith', 'Education', 'Gaming', 'Fashion', 'Tech'
-  ];
+  // -------------------------
+  // COUNTRY → STATE MAP
+  // -------------------------
+  final Map<String, List<String>> countryStates = {
+    "United States": [
+      "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
+      "Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa",
+      "Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan",
+      "Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire",
+      "New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio",
+      "Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota",
+      "Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia",
+      "Wisconsin","Wyoming"
+    ],
+    "United Kingdom": ["England", "Scotland", "Wales", "Northern Ireland"],
+    "Canada": ["Ontario","Quebec","British Columbia","Alberta","Manitoba","Saskatchewan","Nova Scotia","New Brunswick","Newfoundland & Labrador","Prince Edward Island"],
+    "Australia": ["New South Wales","Victoria","Queensland","Western Australia","South Australia","Tasmania","Northern Territory","Australian Capital Territory"],
+    "Nigeria": [
+      "Lagos","Abuja","Rivers","Enugu","Kano","Kaduna","Oyo","Ogun","Delta","Edo",
+      "Anambra","Imo","Abia","Akwa Ibom","Cross River","Benue","Kogi","Kwara","Plateau",
+      "Nasarawa","Borno","Yobe","Sokoto","Zamfara","Kebbi","Taraba","Gombe","Bauchi",
+      "Jigawa","Ondo","Ekiti","Bayelsa"
+    ],
+    "Kenya": ["Nairobi","Mombasa","Kisumu","Nakuru","Eldoret"],
+    "Ghana": ["Greater Accra","Ashanti","Northern","Eastern","Western","Volta","Central"],
+    "South Africa": ["Gauteng","Western Cape","KwaZulu-Natal","Eastern Cape","Free State","Limpopo","Mpumalanga","North West","Northern Cape"],
+    "Uganda": ["Central","Western","Eastern","Northern"],
+    "Ireland": ["Leinster","Munster","Connacht","Ulster"],
+    "New Zealand": ["Auckland","Wellington","Canterbury","Otago"],
+    "Singapore": ["Singapore"],
+    "UAE": ["Dubai","Abu Dhabi","Sharjah","Ajman","Fujairah","Ras Al Khaimah","Umm Al Quwain"],
+    "India": ["Delhi","Maharashtra","Karnataka","Tamil Nadu","Kerala","Gujarat","Punjab","West Bengal"]
+  };
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-    if (pickedFile != null) {
-      setState(() {
-        _profileImage = File(pickedFile.path);
-      });
+    final XFile? file = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (file != null) {
+      setState(() => _profileImage = File(file.path));
     }
   }
 
-  void _addSocial() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        String platform = 'instagram';
-        String handle = '';
-        return AlertDialog(
-          title: const Text('Add social account'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                value: platform,
-                items: ['instagram', 'tiktok', 'youtube', 'facebook']
-                    .map((p) => DropdownMenuItem(value: p, child: Text(p.toUpperCase())))
-                    .toList(),
-                onChanged: (v) => platform = v!,
-              ),
-              TextField(
-                decoration: const InputDecoration(labelText: 'Username / URL'),
-                onChanged: (v) => handle = v,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                if (handle.isNotEmpty) {
-                  setState(() {
-                    _socials.add(SocialProfile(
-                      platform: platform,
-                      handle: handle,
-                      boostEnabled: true,
-                    ));
-                  });
-                }
-                Navigator.pop(context);
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        );
-      },
+  Future<String?> _uploadPhoto(String token) async {
+    if (_profileImage == null) return null;
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/member/profile/upload-photo'),
     );
+
+    request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(await http.MultipartFile.fromPath('photo', _profileImage!.path));
+
+    final response = await request.send();
+    final body = await response.stream.bytesToString();
+
+    if (response.statusCode == 200) {
+      return jsonDecode(body)['url'];
+    }
+
+    return null;
   }
 
-  Future<void> _submitAndPay() async {
-    if (_nameController.text.isEmpty || _selectedCountry == null) {
+  Future<void> _saveProfile() async {
+    if (_selectedCountry == null || _selectedState == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your name and country')),
+        const SnackBar(content: Text("Please select your country and state")),
       );
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() => _isSaving = true);
 
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
       final token = await auth.getToken();
-      
-      if (token == null) throw Exception("Session expired. Please login again.");
 
-      // 1. SAVE PROFILE DATA TO BACKEND
-      final boostService = BoostService(token);
-      
-      String? youtube, facebook, tiktok;
-      for (var s in _socials) {
-        if (s.platform == 'youtube') youtube = s.handle;
-        if (s.platform == 'facebook') facebook = s.handle;
-        if (s.platform == 'tiktok') tiktok = s.handle;
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Session expired. Please log in again.")),
+        );
+        return;
       }
 
-      final profileUpdate = MemberProfile(
-        email: auth.currentUser?.email ?? '',
-        name: _nameController.text.trim(),
-        phone: _phoneController.text.trim(),
-        region: _selectedCountry,
-        youtubeUrl: youtube,
-        facebookUrl: facebook,
-        tiktokUrl: tiktok,
-        membershipActive: false,
-        monthlyBoostsUsed: 0,
-        maxMonthlyBoosts: 20,
-        supportsGiven: 0,
-        supportsReceived: 0,
+      // Upload photo
+      final photoUrl = await _uploadPhoto(token);
+
+      // Save profile
+      final region = "${_selectedCountry!}, ${_selectedState!}";
+
+      final res = await http.post(
+        Uri.parse('$baseUrl/member/profile/update'),
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode({
+          "name": _nameController.text.trim(),
+          "region": region,
+          "profile_photo_url": photoUrl,
+          "phone": "",
+          "youtube_url": "",
+          "facebook_url": "",
+          "tiktok_url": ""
+        }),
       );
 
-      // Upload profile details and image
-      await boostService.updateMemberProfile(profileUpdate, imageFile: _profileImage);
+      if (res.statusCode != 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to save profile")),
+        );
+        return;
+      }
 
-      // 2. FETCH PAYSTACK URL FROM BACKEND
-      final response = await http.post(
+      // Request payment URL
+      final payRes = await http.post(
         Uri.parse('$baseUrl/member/payment-url'),
         headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
         },
       );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        
-        if (mounted) {
-          // 3. NAVIGATE TO PAYMENT SCREEN WITH REAL SERVER DATA
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PaymentScreen(
-                paymentUrl: data['paymentUrl'],
-                amount: (data['amountToPay'] as num).toDouble(),
-                currency: data['currency'] ?? "USD",
-              ),
-            ),
-          );
-        }
-      } else {
-        throw Exception("Failed to generate payment link. Please try again.");
+      if (payRes.statusCode != 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to generate payment link. Please try again.")),
+        );
+        return;
       }
 
+      final payData = jsonDecode(payRes.body);
+
+      if (mounted) {
+        Navigator.pushReplacementNamed(
+          context,
+          AppRoutes.payment,
+          arguments: {
+            "paymentUrl": payData["paymentUrl"],
+            "amount": payData["amountToPay"] ?? 50,
+            "currency": payData["currency"] ?? "USD",
+          },
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+          SnackBar(content: Text("Error: $e")),
         );
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      setState(() => _isSaving = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Complete your profile')),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: GestureDetector(
-                    onTap: _pickImage,
-                    child: CircleAvatar(
-                      radius: 60,
-                      backgroundColor: Colors.grey[200],
-                      backgroundImage: _profileImage != null ? FileImage(_profileImage!) : null,
-                      child: _profileImage == null
-                          ? Icon(Icons.camera_alt, size: 40, color: AppColors.primary)
-                          : null,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                TextInputField(
-                  controller: _nameController,
-                  label: 'Full name',
-                  icon: Icons.person,
-                ),
-                const SizedBox(height: 16),
-                TextInputField(
-                  controller: _phoneController,
-                  label: 'Phone Number',
-                  icon: Icons.phone,
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: _selectedCountry,
-                  items: _countries.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                  onChanged: (v) => setState(() => _selectedCountry = v),
-                  decoration: const InputDecoration(
-                    labelText: 'Country', 
-                    prefixIcon: Icon(Icons.public),
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Social accounts', style: Theme.of(context).textTheme.titleMedium),
-                    TextButton.icon(
-                      onPressed: _addSocial,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add'),
-                    ),
-                  ],
-                ),
-                if (_socials.isNotEmpty)
-                  ..._socials.map((s) => ListTile(
-                    leading: Icon(_platformIcon(s.platform)),
-                    title: Text(s.platform.toUpperCase()),
-                    subtitle: Text(s.handle),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: () => setState(() => _socials.remove(s)),
-                    ),
-                  )),
-                const SizedBox(height: 24),
-                Text('Interests (optional)', style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  children: _interestOptions.map((interest) {
-                    final selected = _selectedInterests.contains(interest);
-                    return FilterChip(
-                      label: Text(interest),
-                      selected: selected,
-                      onSelected: (val) {
-                        setState(() {
-                          val ? _selectedInterests.add(interest) : _selectedInterests.remove(interest);
-                        });
-                      },
-                      selectedColor: AppColors.primary.withOpacity(0.2),
-                      checkmarkColor: AppColors.primary,
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 32),
-                PrimaryButton(
-                  text: 'Continue to membership',
-                  onPressed: _submitAndPay,
-                ),
-              ],
-            ),
-          ),
-    );
-  }
+    final countries = countryStates.keys.toList();
 
-  IconData _platformIcon(String platform) {
-    switch (platform) {
-      case 'instagram': return Icons.photo_camera;
-      case 'tiktok': return Icons.music_note;
-      case 'youtube': return Icons.play_circle;
-      case 'facebook': return Icons.facebook;
-      default: return Icons.link;
-    }
+    return Scaffold(
+      appBar: AppBar(title: const Text("Complete your profile")),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            GestureDetector(
+              onTap: _pickImage,
+              child: CircleAvatar(
+                radius: 60,
+                backgroundImage: _profileImage != null ? FileImage(_profileImage!) : null,
+                child: _profileImage == null
+                    ? Icon(Icons.camera_alt, size: 40, color: AppColors.primary)
+                    : null,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            TextField(
+              controller: _nameController,
+              decoration: const InputDecoration(
+                labelText: "Full Name",
+                prefixIcon: Icon(Icons.person),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            DropdownButtonFormField<String>(
+              value: _selectedCountry,
+              items: countries.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+              onChanged: (v) {
+                setState(() {
+                  _selectedCountry = v;
+                  _selectedState = null;
+                });
+              },
+              decoration: const InputDecoration(
+                labelText: "Country",
+                prefixIcon: Icon(Icons.public),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            DropdownButtonFormField<String>(
+              value: _selectedState,
+              items: _selectedCountry == null
+                  ? []
+                  : countryStates[_selectedCountry]!
+                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                      .toList(),
+              onChanged: (v) => setState(() => _selectedState = v),
+              decoration: const InputDecoration(
+                labelText: "State / Region",
+                prefixIcon: Icon(Icons.location_city),
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            PrimaryButton(
+              text: "Continue to membership",
+              isLoading: _isSaving,
+              onPressed: _saveProfile,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
