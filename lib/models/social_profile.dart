@@ -8,4 +8,12 @@ class SocialProfile {
     required this.handle,
     required this.boostEnabled,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'platform': platform,
+      'handle': handle,
+      'boostEnabled': boostEnabled,
+    };
+  }
 }
