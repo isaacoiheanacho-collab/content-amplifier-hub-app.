@@ -88,12 +88,18 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
             ListTile(
               leading: const Icon(Icons.camera_alt),
               title: const Text("Take Photo"),
-              onTap: () { Navigator.pop(context); _pickPhoto(ImageSource.camera); },
+              onTap: () {
+                Navigator.pop(context);
+                _pickPhoto(ImageSource.camera);
+              },
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
               title: const Text("Choose from Gallery"),
-              onTap: () { Navigator.pop(context); _pickPhoto(ImageSource.gallery); },
+              onTap: () {
+                Navigator.pop(context);
+                _pickPhoto(ImageSource.gallery);
+              },
             ),
           ],
         ),
@@ -109,7 +115,7 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
       email: _profile!.email,
       name: _nameController.text.trim(),
       phone: _phoneController.text.trim(),
-      region: _regionController.text.trim(),
+      region: _regionController.text.trim(), // now holds "Country, State"
       profilePhotoUrl: _photoUrl,
       youtubeUrl: _youtubeController.text.trim(),
       facebookUrl: _facebookController.text.trim(),
@@ -121,7 +127,10 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
       supportsReceived: _profile!.supportsReceived,
     );
 
-    final success = await _boostService.updateMemberProfile(updated, imageFile: _selectedImageFile);
+    final success = await _boostService.updateMemberProfile(
+      updated,
+      imageFile: _selectedImageFile,
+    );
 
     if (mounted) {
       setState(() {
@@ -132,14 +141,20 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
         }
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(success ? 'Profile updated successfully' : 'Failed to update profile')),
+        SnackBar(
+          content: Text(success ? 'Profile updated successfully' : 'Failed to update profile'),
+        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text("Account Information")),
@@ -154,7 +169,9 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
                 backgroundColor: Colors.grey[200],
                 backgroundImage: _selectedImageFile != null
                     ? FileImage(_selectedImageFile!) as ImageProvider
-                    : (_photoUrl != null && _photoUrl!.isNotEmpty ? NetworkImage(_photoUrl!) : null),
+                    : (_photoUrl != null && _photoUrl!.isNotEmpty
+                        ? NetworkImage(_photoUrl!)
+                        : null),
                 child: (_photoUrl == null && _selectedImageFile == null)
                     ? const Icon(Icons.person, size: 50, color: Colors.grey)
                     : null,
@@ -165,7 +182,7 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
             const SizedBox(height: 16),
             _buildField(_phoneController, "Phone Number"),
             const SizedBox(height: 16),
-            _buildField(_regionController, "Region"),
+            _buildField(_regionController, "Country & State"),
             const SizedBox(height: 16),
             _buildField(_youtubeController, "YouTube Link"),
             const SizedBox(height: 16),
@@ -177,7 +194,9 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _saving ? null : _saveProfile,
-                child: _saving ? const CircularProgressIndicator() : const Text("Save Changes"),
+                child: _saving
+                    ? const CircularProgressIndicator()
+                    : const Text("Save Changes"),
               ),
             ),
           ],
@@ -189,7 +208,10 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
   Widget _buildField(TextEditingController controller, String label) {
     return TextField(
       controller: controller,
-      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
     );
   }
 }

@@ -102,6 +102,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final profile = _profile!;
     final boostsLeft = stats.maxMonthlyBoosts - stats.monthlyBoostsUsed;
 
+    final displayName = (profile.name != null && profile.name!.trim().isNotEmpty)
+        ? profile.name!
+        : stats.email.split('@').first;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
@@ -130,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Hi, ${stats.email.split('@').first}',
+                        'Hi, $displayName',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       Chip(
