@@ -25,7 +25,7 @@ class ProfileSetupScreen extends StatefulWidget {
 
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _nameController = TextEditingController();
-  final _phoneController = TextEditingController(); // Added for complete profile
+  final _phoneController = TextEditingController();
   String? _selectedCountry;
   File? _profileImage;
   bool _isLoading = false;
@@ -116,10 +116,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       
       if (token == null) throw Exception("Session expired. Please login again.");
 
-      // 1. SAVE PROFILE DATA
+      // 1. SAVE PROFILE DATA TO BACKEND
       final boostService = BoostService(token);
       
-      // Map socials to specific fields expected by your DB
       String? youtube, facebook, tiktok;
       for (var s in _socials) {
         if (s.platform == 'youtube') youtube = s.handle;
@@ -142,9 +141,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         supportsReceived: 0,
       );
 
+      // Upload profile details and image
       await boostService.updateMemberProfile(profileUpdate, imageFile: _profileImage);
 
-      // 2. FETCH PAYSTACK URL
+      // 2. FETCH PAYSTACK URL FROM BACKEND
       final response = await http.post(
         Uri.parse('$baseUrl/member/payment-url'),
         headers: {
@@ -157,7 +157,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         final data = jsonDecode(response.body);
         
         if (mounted) {
-          // 3. NAVIGATE TO PAYMENT SCREEN WITH DATA
+          // 3. NAVIGATE TO PAYMENT SCREEN WITH REAL SERVER DATA
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -170,13 +170,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           );
         }
       } else {
-        throw Exception("Failed to generate payment link: ${response.body}");
+        throw Exception("Failed to generate payment link. Please try again.");
       }
 
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
         );
       }
     } finally {
