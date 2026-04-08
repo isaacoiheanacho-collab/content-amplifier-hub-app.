@@ -12,7 +12,7 @@ import 'screens/home_screen.dart';
 import 'screens/submit_boost_screen.dart';
 import 'screens/my_boosts_screen.dart';
 import 'screens/support_queue_screen.dart';
-import 'screens/settings_screen.dart'; // Profile Menu
+import 'screens/settings_screen.dart'; 
 import 'screens/terms_screen.dart';
 import 'screens/privacy_screen.dart';
 import 'screens/disclaimer_screen.dart';
@@ -42,7 +42,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => AuthService()), // Changed to ChangeNotifierProvider for state updates
       ],
       child: MaterialApp(
         title: 'Content Amplifier Hub',
@@ -58,8 +58,9 @@ class MyApp extends StatelessWidget {
           AppRoutes.payment: (context) {
             final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
             return PaymentScreen(
-              paymentUrl: args['paymentUrl'],
-              plan: args['plan'],
+              paymentUrl: args['paymentUrl'] ?? '',
+              amount: (args['amount'] ?? 0.0).toDouble(),
+              currency: args['currency'] ?? 'USD',
             );
           },
 
@@ -76,9 +77,8 @@ class MyApp extends StatelessWidget {
           AppRoutes.privacy: (context) => const PrivacyScreen(),
           AppRoutes.disclaimer: (context) => const DisclaimerScreen(),
 
-          // NEW ROUTES — SAFE VERSION
+          // NEW ROUTES
           AppRoutes.accountInfo: (context) => const AccountInformationScreen(),
-
           AppRoutes.billing: (context) => const BillingScreen(),
           AppRoutes.settingsMenu: (context) => const SettingsMenuScreen(),
           AppRoutes.loginMenu: (context) => const LoginMenuScreen(),

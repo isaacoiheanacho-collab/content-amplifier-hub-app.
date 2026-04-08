@@ -19,7 +19,7 @@ class PaymentScreen extends StatefulWidget {
   State<PaymentScreen> createState() => _PaymentScreenState();
 }
 
-class _ProfilePaymentScreenState extends State<PaymentScreen> {
+class _PaymentScreenState extends State<PaymentScreen> {
   late final WebViewController _controller;
   bool _isLoading = true;
 
@@ -51,7 +51,7 @@ class _ProfilePaymentScreenState extends State<PaymentScreen> {
             debugPrint("WebView finished loading: $url");
 
             // Success Detection: 
-            // 1. Check for your specific backend callback
+            // 1. Check for specific backend callback
             // 2. Also check for common Paystack success indicators
             if (url.contains('/auth/payment/callback') || 
                 url.contains('payment-success') ||
@@ -63,7 +63,6 @@ class _ProfilePaymentScreenState extends State<PaymentScreen> {
             debugPrint("WebView Error: ${error.description}");
           },
           onNavigationRequest: (NavigationRequest request) {
-            // Prevent navigating away from the payment gateway unless it's the success URL
             return NavigationDecision.navigate;
           },
         ),
@@ -72,7 +71,8 @@ class _ProfilePaymentScreenState extends State<PaymentScreen> {
   }
 
   void _handlePaymentSuccess() {
-    // Show a small success toast/snackbar before moving
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text("Payment Successful! Verifying membership..."),

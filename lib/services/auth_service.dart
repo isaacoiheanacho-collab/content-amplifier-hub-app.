@@ -1,12 +1,18 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../utils/constants.dart';
 import '../models/member.dart';
 
-class AuthService {
+class AuthService with ChangeNotifier {
   final storage = const FlutterSecureStorage();
   final client = http.Client();
+  
+  Member? _user;
+
+  // Fix: Getter for the current user to resolve build errors in screens
+  Member? get currentUser => _user;
 
   Future<Map<String, dynamic>> register(String email, String password) async {
     try {
@@ -20,8 +26,11 @@ class AuthService {
 
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
-
         final member = Member.fromJson(data['member']);
+
+        // Set the user locally upon registration
+        _user = member;
+        notifyListeners();
 
         return {
           'success': true,
@@ -50,11 +59,14 @@ class AuthService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
         final member = Member.fromJson(data['member']);
 
         await storage.write(key: 'token', value: data['token']);
         await storage.write(key: 'memberId', value: member.id.toString());
+
+        // Update local state
+        _user = member;
+        notifyListeners();
 
         return {
           'success': true,
@@ -81,5 +93,7 @@ class AuthService {
   Future<void> logout() async {
     await storage.delete(key: 'token');
     await storage.delete(key: 'memberId');
+    _user = null;
+    notifyListeners();
   }
 }
