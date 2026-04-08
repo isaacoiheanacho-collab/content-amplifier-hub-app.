@@ -1,11 +1,18 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+
+import '../services/auth_service.dart';
+import '../utils/constants.dart';
 import '../utils/theme.dart';
 import '../utils/routes.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/text_input_field.dart';
 import '../models/social_profile.dart';
+import '../models/plan.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -21,8 +28,29 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final List<SocialProfile> _socials = [];
   final List<String> _selectedInterests = [];
 
-  final List<String> _countries = ['United States', 'United Kingdom', 'Canada', 'Nigeria', 'Kenya', 'South Africa', 'Ghana', 'Other'];
-  final List<String> _interestOptions = ['Music', 'Comedy', 'Business', 'Faith', 'Education', 'Gaming', 'Fashion', 'Tech'];
+  final List<String> _countries = [
+    'United States',
+    'United Kingdom',
+    'Canada',
+    'Nigeria',
+    'Kenya',
+    'South Africa',
+    'Ghana',
+    'Other'
+  ];
+
+  final List<String> _interestOptions = [
+    'Music',
+    'Comedy',
+    'Business',
+    'Faith',
+    'Education',
+    'Gaming',
+    'Fashion',
+    'Tech'
+  ];
+
+  bool _isSaving = false;
 
   Future<void> _pickImage() async {
     final picker = ImagePicker();
@@ -34,68 +62,106 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     }
   }
 
-  void _addSocial() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        String platform = 'instagram';
-        String handle = '';
-        bool boostEnabled = true;
-        return AlertDialog(
-          title: const Text('Add social account'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                value: platform,
-                items: ['instagram', 'tiktok', 'youtube', 'facebook', 'x']
-                    .map((p) => DropdownMenuItem(value: p, child: Text(p.toUpperCase())))
-                    .toList(),
-                onChanged: (v) => platform = v!,
-              ),
-              TextField(
-                decoration: const InputDecoration(labelText: 'Username / URL'),
-                onChanged: (v) => handle = v,
-              ),
-              CheckboxListTile(
-                title: const Text('Boost and support on this platform'),
-                value: boostEnabled,
-                onChanged: (v) => boostEnabled = v!,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _socials.add(SocialProfile(
-                    platform: platform,
-                    handle: handle,
-                    boostEnabled: boostEnabled,
-                  ));
-                });
-                Navigator.pop(context);
-              },
-              child: const Text('Add'),
-            ),
-          ],
-        );
-      },
+  Future<String?> _uploadProfilePhoto(String token) async {
+    if (_profileImage == null) return null;
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/member/upload-photo'),
     );
+
+    request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(await http.MultipartFile.fromPath('photo', _profileImage!.path));
+
+    final response = await request.send();
+    final body = await response.stream.bytesToString();
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(body);
+      return data['url'];
+    }
+
+    return null;
   }
 
-  void _toggleInterest(String interest) {
-    setState(() {
-      if (_selectedInterests.contains(interest)) {
-        _selectedInterests.remove(interest);
-      } else {
-        _selectedInterests.add(interest);
+  Future<void> _saveProfile() async {
+    setState(() => _isSaving = true);
+
+    try {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      final token = await auth.getToken();
+
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Session expired. Please log in again.')),
+        );
+        return;
       }
-    });
+
+      // 1. Upload profile photo
+      final photoUrl = await _uploadProfilePhoto(token);
+
+      // 2. Save profile data
+      final profileRes = await http.post(
+        Uri.parse('$baseUrl/member/update-profile'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'name': _nameController.text,
+          'country': _selectedCountry,
+          'interests': _selectedInterests,
+          'socials': _socials.map((s) => s.toJson()).toList(),
+          'profile_photo_url': photoUrl,
+        }),
+      );
+
+      if (profileRes.statusCode != 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save profile')),
+        );
+        return;
+      }
+
+      // 3. Request payment URL
+      final payRes = await http.post(
+        Uri.parse('$baseUrl/member/payment-url'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (payRes.statusCode != 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to generate payment link')),
+        );
+        return;
+      }
+
+      final payData = jsonDecode(payRes.body);
+
+      // 4. Navigate to PaymentScreen
+      Navigator.pushReplacementNamed(
+        context,
+        AppRoutes.payment,
+        arguments: {
+          'paymentUrl': payData['paymentUrl'],
+          'plan': Plan(
+            name: 'Yearly Membership',
+            price: payData['amountToPay'],
+            description: '',
+          ),
+        },
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -112,7 +178,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 onTap: _pickImage,
                 child: CircleAvatar(
                   radius: 60,
-                  backgroundImage: _profileImage != null ? FileImage(_profileImage!) : null,
+                  backgroundImage:
+                      _profileImage != null ? FileImage(_profileImage!) : null,
                   child: _profileImage == null
                       ? Icon(Icons.camera_alt, size: 40, color: AppColors.primary)
                       : null,
@@ -124,39 +191,35 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
               controller: _nameController,
               label: 'Full name',
               icon: Icons.person,
-              validator: (value) => value == null || value.isEmpty ? 'Name required' : null,
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               value: _selectedCountry,
-              items: _countries.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+              items: _countries
+                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                  .toList(),
               onChanged: (v) => setState(() => _selectedCountry = v),
-              decoration: const InputDecoration(labelText: 'Country', prefixIcon: Icon(Icons.public)),
+              decoration: const InputDecoration(
+                labelText: 'Country',
+                prefixIcon: Icon(Icons.public),
+              ),
             ),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Social accounts', style: Theme.of(context).textTheme.titleMedium),
+                Text('Social accounts',
+                    style: Theme.of(context).textTheme.titleMedium),
                 TextButton.icon(
-                  onPressed: _addSocial,
+                  onPressed: () {},
                   icon: const Icon(Icons.add),
                   label: const Text('Add'),
                 ),
               ],
             ),
-            if (_socials.isNotEmpty)
-              ..._socials.map((s) => ListTile(
-                    leading: Icon(_platformIcon(s.platform)),
-                    title: Text(s.platform.toUpperCase()),
-                    subtitle: Text(s.handle),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: () => setState(() => _socials.remove(s)),
-                    ),
-                  )),
             const SizedBox(height: 24),
-            Text('Interests (optional)', style: Theme.of(context).textTheme.titleMedium),
+            Text('Interests (optional)',
+                style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -165,38 +228,25 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 return FilterChip(
                   label: Text(interest),
                   selected: selected,
-                  onSelected: (_) => _toggleInterest(interest),
-                  selectedColor: AppColors.primary.withOpacity(0.2),
-                  checkmarkColor: AppColors.primary,
+                  onSelected: (_) {
+                    setState(() {
+                      selected
+                          ? _selectedInterests.remove(interest)
+                          : _selectedInterests.add(interest);
+                    });
+                  },
                 );
               }).toList(),
             ),
             const SizedBox(height: 32),
             PrimaryButton(
               text: 'Continue to membership',
-              onPressed: () {
-                // TODO: Save profile data locally or send to backend
-                Navigator.pushReplacementNamed(context, AppRoutes.payment);
-              },
+              isLoading: _isSaving,
+              onPressed: _saveProfile,
             ),
           ],
         ),
       ),
     );
-  }
-
-  IconData _platformIcon(String platform) {
-    switch (platform) {
-      case 'instagram':
-        return Icons.photo_camera;
-      case 'tiktok':
-        return Icons.music_note;
-      case 'youtube':
-        return Icons.play_circle;
-      case 'facebook':
-        return Icons.facebook;
-      default:
-        return Icons.link;
-    }
   }
 }
