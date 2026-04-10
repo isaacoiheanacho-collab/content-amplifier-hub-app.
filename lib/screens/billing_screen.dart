@@ -57,10 +57,9 @@ class _BillingScreenState extends State<BillingScreen> {
       final auth = Provider.of<AuthService>(context, listen: false);
 
       final token = await auth.getToken();
-      final memberId = await auth.getMemberId();
 
-      final paymentUrl =
-          await PaymentAPI.startMaintenancePayment(memberId!, token!);
+      // UPDATED: Only token is required now
+      final paymentUrl = await PaymentAPI.startMaintenancePayment(token!);
 
       Navigator.pushNamed(
         context,
