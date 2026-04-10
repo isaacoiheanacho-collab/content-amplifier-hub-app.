@@ -46,16 +46,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
           },
           onPageFinished: (String url) {
             setState(() => _isLoading = false);
-            
+
             // Log for debugging
             debugPrint("WebView finished loading: $url");
 
-            // Success Detection: 
-            // 1. Check for specific backend callback
-            // 2. Also check for common Paystack success indicators
-            if (url.contains('/auth/payment/callback') || 
-                url.contains('payment-success') ||
-                url.contains('success')) {
+            // Webhook-only flow:
+            // Backend updates membership when Stripe sends checkout.session.completed.
+            // Here we only watch for the success page to give the user feedback
+            // and then navigate them back into the app.
+            if (url.contains('/payment/success')) {
               _handlePaymentSuccess();
             }
           },
@@ -75,15 +74,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("Payment Successful! Verifying membership..."),
+        content: Text("Payment successful! Your membership will be active shortly."),
         backgroundColor: Colors.green,
       ),
     );
 
     // Navigate to home and clear the navigation stack
     Navigator.pushNamedAndRemoveUntil(
-      context, 
-      AppRoutes.home, 
+      context,
+      AppRoutes.home,
       (route) => false,
     );
   }

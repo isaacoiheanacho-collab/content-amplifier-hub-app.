@@ -5,11 +5,10 @@ import '../utils/constants.dart';
 class PaymentAPI {
   // ---------------------------------------------------------
   // CHECK MAINTENANCE STATUS
-  // Hits: GET /member/maintenance-status/:id
+  // GET /member/maintenance-status/:id
   // ---------------------------------------------------------
   static Future<MaintenanceStatus> checkMaintenanceStatus(
       int memberId, String token) async {
-    // We keep this under /member because it's a data retrieval task
     final response = await http.get(
       Uri.parse('$baseUrl/member/maintenance-status/$memberId'),
       headers: {'Authorization': 'Bearer $token'},
@@ -31,25 +30,20 @@ class PaymentAPI {
   }
 
   // ---------------------------------------------------------
-  // START MAINTENANCE PAYMENT
-  // Hits: POST /auth/payment/maintenance 
-  // (Matches index.ts app.use('/auth', authRoutes))
+  // START REGISTRATION PAYMENT (YEARLY MEMBERSHIP)
+  // POST /member/payment-url
   // ---------------------------------------------------------
-  static Future<String> startMaintenancePayment(
-      int memberId, String token) async {
+  static Future<String> startRegistrationPayment(
+      String token) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/payment/maintenance'), // Added /auth prefix
+      Uri.parse('$baseUrl/member/payment-url'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json'
       },
-      body: jsonEncode({
-        "memberId": memberId,
-        "type": "maintenance",
-      }),
     );
 
-    print("Start Maintenance API: ${response.statusCode}");
+    print("Start Registration Payment API: ${response.statusCode}");
 
     if (response.statusCode != 200) {
       throw Exception('Payment init failed: ${response.body}');
@@ -63,9 +57,41 @@ class PaymentAPI {
 
     return data['paymentUrl'];
   }
+
+  // ---------------------------------------------------------
+  // START MAINTENANCE PAYMENT (MONTHLY)
+  // POST /auth/payment/maintenance  → replaced with Stripe version
+  // NEW ENDPOINT: POST /member/payment-maintenance
+  // ---------------------------------------------------------
+  static Future<String> startMaintenancePayment(
+      String token) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/member/payment-maintenance'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json'
+      },
+    );
+
+    print("Start Maintenance Payment API: ${response.statusCode}");
+
+    if (response.statusCode != 200) {
+      throw Exception('Maintenance payment init failed: ${response.body}');
+    }
+
+    final data = jsonDecode(response.body);
+
+    if (data['paymentUrl'] == null) {
+      throw Exception("Payment URL missing from response");
+    }
+
+    return data['paymentUrl'];
+  }
 }
 
-// Removed the underscore (_) so this class can be used in your BillingScreen
+// ---------------------------------------------------------
+// MODEL
+// ---------------------------------------------------------
 class MaintenanceStatus {
   final bool allowed;
   final String? reason;
