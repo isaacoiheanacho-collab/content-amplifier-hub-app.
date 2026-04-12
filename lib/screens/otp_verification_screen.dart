@@ -35,16 +35,32 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       if (result['success']) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Email verified! Please login.')),
+            const SnackBar(
+              content: Text('Email verified! Let\'s set up your profile.'),
+              backgroundColor: Colors.green,
+            ),
           );
-          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+          
+          // AUTO-LOGIN REDIRECT: 
+          // Since verifyOtp now handles the session token, we go straight to profile setup.
+          // pushReplacementNamed ensures the user can't "back" into the OTP screen.
+          Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['error'] ?? 'Verification failed')),
+            SnackBar(
+              content: Text(result['error'] ?? 'Verification failed'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -57,35 +73,52 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       appBar: AppBar(title: const Text('Verify Email')),
       body: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const Icon(Icons.mark_email_read_outlined, size: 80, color: Colors.blue),
-            const SizedBox(height: 24),
-            const Text(
-              'Verify your email',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'We sent a 6-digit code to ${widget.email}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 32),
-            TextInputField(
-              controller: _otpController,
-              label: 'Verification Code',
-              icon: Icons.lock_clock,
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 32),
-            PrimaryButton(
-              text: 'Verify Account',
-              onPressed: _verify,
-              isLoading: _isLoading,
-            ),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Icon(Icons.mark_email_read_outlined, size: 80, color: Colors.blue),
+              const SizedBox(height: 24),
+              const Text(
+                'Verify your email',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'We sent a 6-digit code to',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+              Text(
+                widget.email,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+              ),
+              const SizedBox(height: 32),
+              TextInputField(
+                controller: _otpController,
+                label: '6-Digit Verification Code',
+                icon: Icons.lock_clock,
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 32),
+              PrimaryButton(
+                text: 'Verify Account',
+                onPressed: _verify,
+                isLoading: _isLoading,
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: _isLoading ? null : () {
+                  // Optional: You could call a resend OTP method here later
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Feature coming soon: Resend Code')),
+                  );
+                },
+                child: const Text("Didn't receive a code? Resend"),
+              ),
+            ],
+          ),
         ),
       ),
     );
