@@ -37,24 +37,37 @@ class _LoginScreenState extends State<LoginScreen> {
             context,
             AppRoutes.payment,
             arguments: {
-              'paymentUrl': null, // login does not return paymentUrl
+              'paymentUrl': null,
               'plan': null,
             },
           );
         } else {
           Navigator.pushReplacementNamed(context, AppRoutes.home);
         }
+      } else if (result['needsVerification'] == true) {
+        // REDIRECT TO OTP: User is registered but not verified
+        if (mounted) {
+          Navigator.pushNamed(
+            context,
+            AppRoutes.otpVerification,
+            arguments: _emailController.text.trim(),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['error'])),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['error'] ?? 'Login failed')),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -71,6 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
               controller: _emailController,
               label: 'Email',
               icon: Icons.email,
+              keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 16),
             TextInputField(

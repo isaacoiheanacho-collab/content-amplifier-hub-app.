@@ -4,7 +4,6 @@ import '../services/auth_service.dart';
 import '../utils/routes.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/text_input_field.dart';
-import '../models/plan.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -41,46 +40,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (result['success']) {
-        final member = result['member'];
-
-        // Step 1: Profile Setup
-        if (!member.profileComplete) {
-          Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
-          return;
-        }
-
-        // Step 2: Payment
-        if (!member.paymentComplete) {
-          final plan = Plan(
-            name: 'Yearly Membership',
-            price: result['amountToPay'],
-            description: '',
+        // SUCCESS: The backend sent the email. 
+        // Now we go to the OTP screen, passing the email so the user knows where it was sent.
+        if (mounted) {
+          Navigator.pushNamed(
+            context, 
+            '/otp-verification', // Ensure this route is defined in your AppRoutes
+            arguments: _emailController.text.trim(),
           );
-
-          Navigator.pushReplacementNamed(
-            context,
-            AppRoutes.payment,
-            arguments: {
-              'paymentUrl': result['paymentUrl'],
-              'plan': plan,
-            },
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Verification code sent to your email.')),
           );
-          return;
         }
-
-        // Step 3: Home
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['error'])),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['error'] ?? 'Registration failed')),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -98,6 +85,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 controller: _emailController,
                 label: 'Email',
                 icon: Icons.email,
+                keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
               TextInputField(

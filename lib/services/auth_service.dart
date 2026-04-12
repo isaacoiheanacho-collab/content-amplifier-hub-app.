@@ -11,33 +11,19 @@ class AuthService with ChangeNotifier {
   
   Member? _user;
 
-  // Fix: Getter for the current user to resolve build errors in screens
   Member? get currentUser => _user;
 
-  Future<Map<String, dynamic>> register(String email, String password) async {
+  // NEW: Verify OTP Method
+  Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
     try {
-      final response = await client
-          .post(
-            Uri.parse('$baseUrl/auth/register'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'email': email, 'password': password}),
-          )
-          .timeout(const Duration(seconds: 60));
+      final response = await client.post(
+        Uri.parse('$baseUrl/auth/verify-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'otp': otp}),
+      ).timeout(const Duration(seconds: 30));
 
-      if (response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        final member = Member.fromJson(data['member']);
-
-        // Set the user locally upon registration
-        _user = member;
-        notifyListeners();
-
-        return {
-          'success': true,
-          'member': member,
-          'paymentUrl': data['paymentUrl'],
-          'amountToPay': data['amountToPay'],
-        };
+      if (response.statusCode == 200) {
+        return {'success': true};
       } else {
         final error = jsonDecode(response.body)['error'];
         return {'success': false, 'error': error};
@@ -47,24 +33,47 @@ class AuthService with ChangeNotifier {
     }
   }
 
+  Future<Map<String, dynamic>> register(String email, String password) async {
+    try {
+      final response = await client.post(
+        Uri.parse('$baseUrl/auth/register'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
+      ).timeout(const Duration(seconds: 60));
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 201) {
+        // Registration successful - Backend sends 201 and message: 'OTP sent to email'
+        return {
+          'success': true,
+          'email': data['email'],
+          'memberId': data['memberId'],
+          'isVerified': false, // Explicitly tell UI to go to OTP screen
+        };
+      } else {
+        return {'success': false, 'error': data['error']};
+      }
+    } catch (e) {
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
+
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
-      final response = await client
-          .post(
-            Uri.parse('$baseUrl/auth/login'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'email': email, 'password': password}),
-          )
-          .timeout(const Duration(seconds: 60));
+      final response = await client.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
+      ).timeout(const Duration(seconds: 60));
+
+      final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
         final member = Member.fromJson(data['member']);
-
         await storage.write(key: 'token', value: data['token']);
         await storage.write(key: 'memberId', value: member.id.toString());
 
-        // Update local state
         _user = member;
         notifyListeners();
 
@@ -72,9 +81,16 @@ class AuthService with ChangeNotifier {
           'success': true,
           'member': member,
         };
+      } else if (response.statusCode == 403) {
+        // Handle the "Email not verified" case
+        return {
+          'success': false,
+          'error': data['error'],
+          'needsVerification': true,
+          'email': email, // Pass email back so UI can auto-fill OTP screen
+        };
       } else {
-        final error = jsonDecode(response.body)['error'];
-        return {'success': false, 'error': error};
+        return {'success': false, 'error': data['error']};
       }
     } catch (e) {
       return {'success': false, 'error': 'Network error: $e'};

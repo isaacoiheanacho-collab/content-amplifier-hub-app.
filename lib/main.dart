@@ -6,6 +6,7 @@ import 'screens/splash_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
+import 'screens/otp_verification_screen.dart'; // NEW IMPORT
 import 'screens/profile_setup_screen.dart';
 import 'screens/payment_screen.dart';
 import 'screens/home_screen.dart';
@@ -42,12 +43,22 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthService()), // Changed to ChangeNotifierProvider for state updates
+        ChangeNotifierProvider(create: (_) => AuthService()),
       ],
       child: MaterialApp(
         title: 'Content Amplifier Hub',
         theme: buildAppTheme(),
         initialRoute: AppRoutes.splash,
+        // Using onGenerateRoute specifically for routes that need arguments
+        onGenerateRoute: (settings) {
+          if (settings.name == AppRoutes.otpVerification) {
+            final email = settings.arguments as String;
+            return MaterialPageRoute(
+              builder: (context) => OtpVerificationScreen(email: email),
+            );
+          }
+          return null; // Let 'routes' handle everything else
+        },
         routes: {
           AppRoutes.splash: (context) => const SplashScreen(),
           AppRoutes.welcome: (context) => const WelcomeScreen(),
