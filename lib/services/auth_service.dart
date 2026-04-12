@@ -13,7 +13,7 @@ class AuthService with ChangeNotifier {
 
   Member? get currentUser => _user;
 
-  // UPDATED: Now supports Auto-Login after successful OTP verification
+  // NEW: Verify OTP Method
   Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
     try {
       final response = await client.post(
@@ -22,23 +22,11 @@ class AuthService with ChangeNotifier {
         body: jsonEncode({'email': email, 'otp': otp}),
       ).timeout(const Duration(seconds: 30));
 
-      final data = jsonDecode(response.body);
-
       if (response.statusCode == 200) {
-        // Auto-login: Save the token and member data returned by the backend
-        final member = Member.fromJson(data['member']);
-        await storage.write(key: 'token', value: data['token']);
-        await storage.write(key: 'memberId', value: member.id.toString());
-
-        _user = member;
-        notifyListeners();
-
-        return {
-          'success': true,
-          'member': member,
-        };
+        return {'success': true};
       } else {
-        return {'success': false, 'error': data['error'] ?? 'Verification failed'};
+        final error = jsonDecode(response.body)['error'];
+        return {'success': false, 'error': error};
       }
     } catch (e) {
       return {'success': false, 'error': 'Network error: $e'};
@@ -56,15 +44,15 @@ class AuthService with ChangeNotifier {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 201) {
-        // Registration successful - Backend sends OTP
+        // Registration successful - Backend sends 201 and message: 'OTP sent to email'
         return {
           'success': true,
           'email': data['email'],
           'memberId': data['memberId'],
-          'isVerified': false,
+          'isVerified': false, // Explicitly tell UI to go to OTP screen
         };
       } else {
-        return {'success': false, 'error': data['error'] ?? 'Registration failed'};
+        return {'success': false, 'error': data['error']};
       }
     } catch (e) {
       return {'success': false, 'error': 'Network error: $e'};
@@ -94,15 +82,15 @@ class AuthService with ChangeNotifier {
           'member': member,
         };
       } else if (response.statusCode == 403) {
-        // Handle unverified account
+        // Handle the "Email not verified" case
         return {
           'success': false,
-          'error': data['error'] ?? 'Email not verified',
+          'error': data['error'],
           'needsVerification': true,
-          'email': email,
+          'email': email, // Pass email back so UI can auto-fill OTP screen
         };
       } else {
-        return {'success': false, 'error': data['error'] ?? 'Login failed'};
+        return {'success': false, 'error': data['error']};
       }
     } catch (e) {
       return {'success': false, 'error': 'Network error: $e'};
