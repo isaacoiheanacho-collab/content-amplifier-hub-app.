@@ -37,57 +37,36 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       if (result['success']) {
         final Member member = result['member'];
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Email verified successfully!'),
-              backgroundColor: Colors.green,
-            ),
-          );
+        if (!mounted) return;
 
-          // --- UNIFIED WATERFALL NAVIGATION LOGIC ---
-          
-          // Step 1: Check if Name or Region is missing using our new model getter
-          if (member.needsProfileSetup) {
-            Navigator.pushNamedAndRemoveUntil(
-              context, 
-              AppRoutes.profileSetup, 
-              (route) => false
-            );
-          } 
-          // Step 2: Check if Payment/Membership is active
-          else if (!member.membershipActive) {
-            Navigator.pushNamedAndRemoveUntil(
-              context, 
-              AppRoutes.payment, 
-              (route) => false
-            );
-          } 
-          // Step 3: All requirements met, go to Dashboard
-          else {
-            Navigator.pushNamedAndRemoveUntil(
-              context, 
-              AppRoutes.home, 
-              (route) => false
-            );
-          }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Email verified successfully!')),
+        );
+
+        // --- WATERFALL NAVIGATION LOGIC ---
+        // This logic checks the database state to see where the user actually belongs.
+        
+        if (member.profileComplete == false || member.needsProfileSetup) {
+          // Step 1: User has not filled out their profile details.
+          Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
+        } else if (member.membershipActive == false) {
+          // Step 2: Profile is done, but they haven't paid the membership fee.
+          Navigator.pushReplacementNamed(context, AppRoutes.payment);
+        } else {
+          // Step 3: Fully verified, profile filled, and paid. Go to Home.
+          Navigator.pushReplacementNamed(context, AppRoutes.home);
         }
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['error'] ?? 'Invalid or expired code'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Network error: $e')),
+          SnackBar(content: Text(result['error'] ?? 'Verification failed')),
         );
       }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An error occurred: $e')),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -96,16 +75,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Verify Email'),
-        automaticallyImplyLeading: false, 
-      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(24.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 20),
+            const SizedBox(height: 60),
             const Icon(Icons.mark_email_read_outlined, size: 80, color: Colors.blue),
             const SizedBox(height: 24),
             const Text(
@@ -134,7 +108,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             const SizedBox(height: 16),
             TextButton(
               onPressed: () {
-                // If they cancel verification, take them back to login
                 Navigator.pushReplacementNamed(context, AppRoutes.login);
               },
               child: const Text("Back to Login"),
