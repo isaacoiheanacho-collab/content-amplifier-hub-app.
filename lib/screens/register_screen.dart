@@ -23,6 +23,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
+    
     if (!_agreeTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('You must accept the terms to continue.')),
@@ -40,23 +41,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
 
       if (result['success']) {
-        // SUCCESS: The backend sent the email. 
-        // Now we go to the OTP screen, passing the email so the user knows where it was sent.
         if (mounted) {
-          Navigator.pushNamed(
-            context, 
-            '/otp-verification', // Ensure this route is defined in your AppRoutes
-            arguments: _emailController.text.trim(),
-          );
-          
+          // Show feedback immediately
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Verification code sent to your email.')),
+            const SnackBar(
+              content: Text('Account created! Please check your email for the code.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // --- FIX: USE APP ROUTES CONSTANT ---
+          Navigator.pushReplacementNamed(
+            context, 
+            AppRoutes.otpVerification, 
+            arguments: _emailController.text.trim(),
           );
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['error'] ?? 'Registration failed')),
+            SnackBar(
+              content: Text(result['error'] ?? 'Registration failed'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
@@ -74,7 +81,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create account')),
+      appBar: AppBar(title: const Text('Create Account')),
       body: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -97,7 +104,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 16),
               TextInputField(
                 controller: _confirmPasswordController,
-                label: 'Confirm password',
+                label: 'Confirm Password',
                 icon: Icons.lock_outline,
                 obscureText: true,
                 validator: (value) {
@@ -112,6 +119,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   Checkbox(
                     value: _agreeTerms,
+                    activeColor: Theme.of(context).primaryColor,
                     onChanged: (val) => setState(() => _agreeTerms = val ?? false),
                   ),
                   const Expanded(
@@ -121,9 +129,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 24),
               PrimaryButton(
-                text: 'Create account',
+                text: 'Create Account',
                 onPressed: _register,
                 isLoading: _isLoading,
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Already have an account? Login"),
               ),
             ],
           ),

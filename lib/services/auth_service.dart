@@ -13,7 +13,6 @@ class AuthService with ChangeNotifier {
 
   Member? get currentUser => _user;
 
-  // NEW: Verify OTP Method
   Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
     try {
       final response = await client.post(
@@ -44,12 +43,11 @@ class AuthService with ChangeNotifier {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 201) {
-        // Registration successful - Backend sends 201 and message: 'OTP sent to email'
         return {
           'success': true,
-          'email': data['email'],
+          'email': data['email'] ?? email,
           'memberId': data['memberId'],
-          'isVerified': false, // Explicitly tell UI to go to OTP screen
+          'needsVerification': true, // Standardized key for UI flow
         };
       } else {
         return {'success': false, 'error': data['error']};
@@ -82,15 +80,15 @@ class AuthService with ChangeNotifier {
           'member': member,
         };
       } else if (response.statusCode == 403) {
-        // Handle the "Email not verified" case
+        // --- MATCHES BACKEND 403 RESPONSE ---
         return {
           'success': false,
-          'error': data['error'],
+          'error': data['error'] ?? 'Email not verified',
           'needsVerification': true,
-          'email': email, // Pass email back so UI can auto-fill OTP screen
+          'email': data['email'] ?? email,
         };
       } else {
-        return {'success': false, 'error': data['error']};
+        return {'success': false, 'error': data['error'] ?? 'Login failed'};
       }
     } catch (e) {
       return {'success': false, 'error': 'Network error: $e'};

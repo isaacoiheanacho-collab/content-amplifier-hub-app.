@@ -18,6 +18,14 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   Future<void> _login() async {
+    // Basic validation to save a network request
+    if (_emailController.text.trim().isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your email and password')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -27,9 +35,22 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
       );
 
+      // --- CRITICAL FIX: CHECK VERIFICATION FIRST ---
+      if (result['needsVerification'] == true) {
+        if (mounted) {
+          Navigator.pushReplacementNamed(
+            context,
+            AppRoutes.otpVerification,
+            arguments: result['email'] ?? _emailController.text.trim(),
+          );
+        }
+        return; // Stop execution here
+      }
+
       if (result['success']) {
         final member = result['member'];
 
+        // Now handle post-verification onboarding steps
         if (!member.profileComplete) {
           Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
         } else if (!member.paymentComplete) {
@@ -43,15 +64,6 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         } else {
           Navigator.pushReplacementNamed(context, AppRoutes.home);
-        }
-      } else if (result['needsVerification'] == true) {
-        // REDIRECT TO OTP: User is registered but not verified
-        if (mounted) {
-          Navigator.pushNamed(
-            context,
-            AppRoutes.otpVerification,
-            arguments: _emailController.text.trim(),
-          );
         }
       } else {
         if (mounted) {

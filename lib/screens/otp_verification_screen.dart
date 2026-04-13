@@ -19,7 +19,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   bool _isLoading = false;
 
   Future<void> _verify() async {
-    if (_otpController.text.length < 6) {
+    // 1. Basic validation
+    if (_otpController.text.trim().length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter the 6-digit code')),
       );
@@ -35,16 +36,35 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       if (result['success']) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Email verified! Please login.')),
+            const SnackBar(
+              content: Text('Email verified! Please login to continue.'),
+              backgroundColor: Colors.green,
+            ),
           );
-          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+          
+          // 2. Clear stack and go to Login. 
+          // This ensures the next login attempt fetches the brand new token.
+          Navigator.pushNamedAndRemoveUntil(
+            context, 
+            AppRoutes.login, 
+            (route) => false
+          );
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['error'] ?? 'Verification failed')),
+            SnackBar(
+              content: Text(result['error'] ?? 'Invalid or expired code'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Network error: $e')),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -54,7 +74,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify Email')),
+      appBar: AppBar(
+        title: const Text('Verify Email'),
+        // Prevent accidental back navigation if you want to force verification
+        automaticallyImplyLeading: false, 
+      ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -68,14 +92,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'We sent a 6-digit code to ${widget.email}',
+              'We sent a 6-digit code to\n${widget.email}',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey),
+              style: const TextStyle(color: Colors.grey, height: 1.5),
             ),
             const SizedBox(height: 32),
             TextInputField(
               controller: _otpController,
-              label: 'Verification Code',
+              label: '6-Digit Code',
               icon: Icons.lock_clock,
               keyboardType: TextInputType.number,
             ),
@@ -84,6 +108,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               text: 'Verify Account',
               onPressed: _verify,
               isLoading: _isLoading,
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () {
+                // You could add a 'Resend Code' logic here later
+                Navigator.pushReplacementNamed(context, AppRoutes.login);
+              },
+              child: const Text("Back to Login"),
             ),
           ],
         ),
