@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
+import '../utils/constants.dart';
 import '../utils/routes.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/text_input_field.dart';
@@ -18,7 +21,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   Future<void> _login() async {
-    // Basic validation to save a network request
     if (_emailController.text.trim().isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter your email and password')),
@@ -35,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
       );
 
-      // --- CRITICAL FIX: CHECK VERIFICATION FIRST ---
+      // --- HANDLE UNVERIFIED EMAIL ---
       if (result['needsVerification'] == true) {
         if (mounted) {
           Navigator.pushReplacementNamed(
@@ -44,26 +46,19 @@ class _LoginScreenState extends State<LoginScreen> {
             arguments: result['email'] ?? _emailController.text.trim(),
           );
         }
-        return; // Stop execution here
+        return;
       }
 
       if (result['success']) {
         final member = result['member'];
 
-        // Now handle post-verification onboarding steps
-        if (!member.profileComplete) {
-          Navigator.pushReplacementNamed(context, AppRoutes.profileSetup);
-        } else if (!member.paymentComplete) {
-          Navigator.pushReplacementNamed(
-            context,
-            AppRoutes.payment,
-            arguments: {
-              'paymentUrl': null,
-              'plan': null,
-            },
-          );
+        // NEW FLOW: Payment first if membership not active, else Home
+        if (!member.membershipActive) {
+          await _navigateToPayment();
         } else {
-          Navigator.pushReplacementNamed(context, AppRoutes.home);
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, AppRoutes.home);
+          }
         }
       } else {
         if (mounted) {
@@ -81,6 +76,55 @@ class _LoginScreenState extends State<LoginScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _navigateToPayment() async {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final token = await auth.getToken();
+    if (token == null) {
+      _showError('Session expired. Please log in again.');
+      if (mounted) Navigator.pushReplacementNamed(context, AppRoutes.login);
+      return;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/member/payment-url'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          Navigator.pushReplacementNamed(
+            context,
+            AppRoutes.payment,
+            arguments: {
+              'paymentUrl': data['paymentUrl'],
+              'amount': (data['amountToPay'] ?? 50).toDouble(),
+              'currency': data['currency'] ?? 'USD',
+            },
+          );
+        }
+      } else {
+        throw Exception('Failed to get payment URL');
+      }
+    } catch (e) {
+      if (mounted) {
+        _showError('Payment error: $e');
+        // Fallback: go to home anyway (user can try later)
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
+      }
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 
   @override
