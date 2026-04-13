@@ -13,6 +13,7 @@ class AuthService with ChangeNotifier {
 
   Member? get currentUser => _user;
 
+  /// Verifies OTP and performs auto-login by saving the returned token
   Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
     try {
       final response = await client.post(
@@ -21,10 +22,23 @@ class AuthService with ChangeNotifier {
         body: jsonEncode({'email': email, 'otp': otp}),
       ).timeout(const Duration(seconds: 30));
 
+      final data = jsonDecode(response.body);
+
       if (response.statusCode == 200) {
-        return {'success': true};
+        // Parse member and token from the new auto-login response
+        final member = Member.fromJson(data['member']);
+        await storage.write(key: 'token', value: data['token']);
+        await storage.write(key: 'memberId', value: member.id.toString());
+
+        _user = member;
+        notifyListeners();
+
+        return {
+          'success': true,
+          'member': member,
+        };
       } else {
-        final error = jsonDecode(response.body)['error'];
+        final error = data['error'] ?? 'Verification failed';
         return {'success': false, 'error': error};
       }
     } catch (e) {
@@ -47,7 +61,7 @@ class AuthService with ChangeNotifier {
           'success': true,
           'email': data['email'] ?? email,
           'memberId': data['memberId'],
-          'needsVerification': true, // Standardized key for UI flow
+          'needsVerification': true,
         };
       } else {
         return {'success': false, 'error': data['error']};
@@ -80,7 +94,6 @@ class AuthService with ChangeNotifier {
           'member': member,
         };
       } else if (response.statusCode == 403) {
-        // --- MATCHES BACKEND 403 RESPONSE ---
         return {
           'success': false,
           'error': data['error'] ?? 'Email not verified',

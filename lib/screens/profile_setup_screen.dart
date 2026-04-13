@@ -29,36 +29,15 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   final ImagePicker _picker = ImagePicker();
 
-  // -------------------------
-  // COUNTRY → STATE MAP
-  // -------------------------
   final Map<String, List<String>> countryStates = {
-    "United States": [
-      "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
-      "Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa",
-      "Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan",
-      "Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire",
-      "New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio",
-      "Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota",
-      "Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia",
-      "Wisconsin","Wyoming"
-    ],
+    "United States": ["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"],
     "United Kingdom": ["England", "Scotland", "Wales", "Northern Ireland"],
     "Canada": ["Ontario","Quebec","British Columbia","Alberta","Manitoba","Saskatchewan","Nova Scotia","New Brunswick","Newfoundland & Labrador","Prince Edward Island"],
     "Australia": ["New South Wales","Victoria","Queensland","Western Australia","South Australia","Tasmania","Northern Territory","Australian Capital Territory"],
-    "Nigeria": [
-      "Lagos","Abuja","Rivers","Enugu","Kano","Kaduna","Oyo","Ogun","Delta","Edo",
-      "Anambra","Imo","Abia","Akwa Ibom","Cross River","Benue","Kogi","Kwara","Plateau",
-      "Nasarawa","Borno","Yobe","Sokoto","Zamfara","Kebbi","Taraba","Gombe","Bauchi",
-      "Jigawa","Ondo","Ekiti","Bayelsa"
-    ],
+    "Nigeria": ["Lagos","Abuja","Rivers","Enugu","Kano","Kaduna","Oyo","Ogun","Delta","Edo","Anambra","Imo","Abia","Akwa Ibom","Cross River","Benue","Kogi","Kwara","Plateau","Nasarawa","Borno","Yobe","Sokoto","Zamfara","Kebbi","Taraba","Gombe","Bauchi","Jigawa","Ondo","Ekiti","Bayelsa"],
     "Kenya": ["Nairobi","Mombasa","Kisumu","Nakuru","Eldoret"],
     "Ghana": ["Greater Accra","Ashanti","Northern","Eastern","Western","Volta","Central"],
     "South Africa": ["Gauteng","Western Cape","KwaZulu-Natal","Eastern Cape","Free State","Limpopo","Mpumalanga","North West","Northern Cape"],
-    "Uganda": ["Central","Western","Eastern","Northern"],
-    "Ireland": ["Leinster","Munster","Connacht","Ulster"],
-    "New Zealand": ["Auckland","Wellington","Canterbury","Otago"],
-    "Singapore": ["Singapore"],
     "UAE": ["Dubai","Abu Dhabi","Sharjah","Ajman","Fujairah","Ras Al Khaimah","Umm Al Quwain"],
     "India": ["Delhi","Maharashtra","Karnataka","Tamil Nadu","Kerala","Gujarat","Punjab","West Bengal"]
   };
@@ -73,29 +52,35 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   Future<String?> _uploadPhoto(String token) async {
     if (_profileImage == null) return null;
 
-    final request = http.MultipartRequest(
-      'POST',
-      Uri.parse('$baseUrl/member/profile/upload-photo'),
-    );
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/member/profile/upload-photo'),
+      );
 
-    request.headers['Authorization'] = 'Bearer $token';
-    request.files.add(await http.MultipartFile.fromPath('photo', _profileImage!.path));
+      request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(await http.MultipartFile.fromPath('photo', _profileImage!.path));
 
-    final response = await request.send();
-    final body = await response.stream.bytesToString();
+      final response = await request.send();
+      final body = await response.stream.bytesToString();
 
-    if (response.statusCode == 200) {
-      return jsonDecode(body)['url'];
+      if (response.statusCode == 200) {
+        return jsonDecode(body)['url'];
+      }
+    } catch (e) {
+      debugPrint("Photo upload error: $e");
     }
-
     return null;
   }
 
   Future<void> _saveProfile() async {
+    // 1. Validation
+    if (_nameController.text.trim().isEmpty) {
+      _showError("Please enter your full name");
+      return;
+    }
     if (_selectedCountry == null || _selectedState == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select your country and state")),
-      );
+      _showError("Please select your country and state");
       return;
     }
 
@@ -106,16 +91,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       final token = await auth.getToken();
 
       if (token == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Session expired. Please log in again.")),
-        );
+        _showError("Session expired. Please log in again.");
+        Navigator.pushReplacementNamed(context, AppRoutes.login);
         return;
       }
 
-      // Upload photo
+      // 2. Process Upload and Update
       final photoUrl = await _uploadPhoto(token);
-
-      // Save profile
       final region = "${_selectedCountry!}, ${_selectedState!}";
 
       final res = await http.post(
@@ -128,21 +110,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           "name": _nameController.text.trim(),
           "region": region,
           "profile_photo_url": photoUrl,
-          "phone": "",
-          "youtube_url": "",
-          "facebook_url": "",
-          "tiktok_url": ""
         }),
       );
 
       if (res.statusCode != 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Failed to save profile")),
-        );
-        return;
+        throw Exception("Failed to save profile details");
       }
 
-      // Request payment URL
+      // 3. Move to Payment Step
       final payRes = await http.post(
         Uri.parse('$baseUrl/member/payment-url'),
         headers: {
@@ -152,10 +127,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       );
 
       if (payRes.statusCode != 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Failed to generate payment link. Please try again.")),
-        );
-        return;
+        throw Exception("Failed to generate payment link");
       }
 
       final payData = jsonDecode(payRes.body);
@@ -172,14 +144,16 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
-        );
-      }
+      if (mounted) _showError(e.toString());
     } finally {
-      setState(() => _isSaving = false);
+      if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 
   @override
@@ -192,30 +166,46 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
+            const SizedBox(height: 10),
             GestureDetector(
-              onTap: _pickImage,
-              child: CircleAvatar(
-                radius: 60,
-                backgroundImage: _profileImage != null ? FileImage(_profileImage!) : null,
-                child: _profileImage == null
-                    ? Icon(Icons.camera_alt, size: 40, color: AppColors.primary)
-                    : null,
+              onTap: _isSaving ? null : _pickImage,
+              child: Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  CircleAvatar(
+                    radius: 60,
+                    backgroundColor: Colors.grey[200],
+                    backgroundImage: _profileImage != null ? FileImage(_profileImage!) : null,
+                    child: _profileImage == null
+                        ? Icon(Icons.person, size: 60, color: Colors.grey[400])
+                        : null,
+                  ),
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: AppColors.primary,
+                    child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-
+            const SizedBox(height: 32),
             TextField(
               controller: _nameController,
+              textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(
                 labelText: "Full Name",
-                prefixIcon: Icon(Icons.person),
+                prefixIcon: Icon(Icons.person_outline),
+                border: OutlineInputBorder(),
               ),
             ),
-
             const SizedBox(height: 16),
-
             DropdownButtonFormField<String>(
               value: _selectedCountry,
+              decoration: const InputDecoration(
+                labelText: "Country",
+                prefixIcon: Icon(Icons.public),
+                border: OutlineInputBorder(),
+              ),
               items: countries.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
               onChanged: (v) {
                 setState(() {
@@ -223,30 +213,23 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   _selectedState = null;
                 });
               },
-              decoration: const InputDecoration(
-                labelText: "Country",
-                prefixIcon: Icon(Icons.public),
-              ),
             ),
-
             const SizedBox(height: 16),
-
             DropdownButtonFormField<String>(
               value: _selectedState,
+              decoration: const InputDecoration(
+                labelText: "State / Region",
+                prefixIcon: Icon(Icons.location_city),
+                border: OutlineInputBorder(),
+              ),
               items: _selectedCountry == null
                   ? []
                   : countryStates[_selectedCountry]!
                       .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                       .toList(),
               onChanged: (v) => setState(() => _selectedState = v),
-              decoration: const InputDecoration(
-                labelText: "State / Region",
-                prefixIcon: Icon(Icons.location_city),
-              ),
             ),
-
-            const SizedBox(height: 32),
-
+            const SizedBox(height: 40),
             PrimaryButton(
               text: "Continue to membership",
               isLoading: _isSaving,
@@ -256,5 +239,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
   }
 }

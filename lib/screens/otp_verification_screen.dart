@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../utils/routes.dart';
+import '../models/member.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/text_input_field.dart';
 
@@ -34,21 +35,42 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       final result = await auth.verifyOtp(widget.email, _otpController.text.trim());
 
       if (result['success']) {
+        final Member member = result['member'];
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Email verified! Please login to continue.'),
+              content: Text('Email verified successfully!'),
               backgroundColor: Colors.green,
             ),
           );
+
+          // --- UNIFIED WATERFALL NAVIGATION LOGIC ---
           
-          // 2. Clear stack and go to Login. 
-          // This ensures the next login attempt fetches the brand new token.
-          Navigator.pushNamedAndRemoveUntil(
-            context, 
-            AppRoutes.login, 
-            (route) => false
-          );
+          // Step 1: Check if Name or Region is missing using our new model getter
+          if (member.needsProfileSetup) {
+            Navigator.pushNamedAndRemoveUntil(
+              context, 
+              AppRoutes.profileSetup, 
+              (route) => false
+            );
+          } 
+          // Step 2: Check if Payment/Membership is active
+          else if (!member.membershipActive) {
+            Navigator.pushNamedAndRemoveUntil(
+              context, 
+              AppRoutes.payment, 
+              (route) => false
+            );
+          } 
+          // Step 3: All requirements met, go to Dashboard
+          else {
+            Navigator.pushNamedAndRemoveUntil(
+              context, 
+              AppRoutes.home, 
+              (route) => false
+            );
+          }
         }
       } else {
         if (mounted) {
@@ -76,14 +98,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Verify Email'),
-        // Prevent accidental back navigation if you want to force verification
         automaticallyImplyLeading: false, 
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            const SizedBox(height: 20),
             const Icon(Icons.mark_email_read_outlined, size: 80, color: Colors.blue),
             const SizedBox(height: 24),
             const Text(
@@ -112,7 +134,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             const SizedBox(height: 16),
             TextButton(
               onPressed: () {
-                // You could add a 'Resend Code' logic here later
+                // If they cancel verification, take them back to login
                 Navigator.pushReplacementNamed(context, AppRoutes.login);
               },
               child: const Text("Back to Login"),
@@ -121,5 +143,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _otpController.dispose();
+    super.dispose();
   }
 }
