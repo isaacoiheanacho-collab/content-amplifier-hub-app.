@@ -3,8 +3,8 @@ class AppRoutes {
   static const welcome = '/welcome';
   static const login = '/login';
   static const register = '/register';
-  static const otpVerification = '/otp-verification'; // Added
-  static const profileSetup = '/profile-setup';
+  static const otpVerification = '/otp-verification';
+  // static const profileSetup = '/profile-setup';  // REMOVED
   static const payment = '/payment';
   static const home = '/home';
   static const submitBoost = '/submit-boost';

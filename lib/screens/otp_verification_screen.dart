@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
 import '../services/auth_service.dart';
 import '../utils/routes.dart';
+import '../utils/constants.dart'; // contains baseUrl
 import '../models/member.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/text_input_field.dart';
@@ -20,7 +23,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   bool _isLoading = false;
 
   Future<void> _verify() async {
-    // 1. Basic validation
     if (_otpController.text.trim().length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter the 6-digit code')),
@@ -45,30 +47,16 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             ),
           );
 
-          // --- UNIFIED WATERFALL NAVIGATION LOGIC ---
-          
-          // Step 1: Check if Name or Region is missing using our new model getter
-          if (member.needsProfileSetup) {
+          // NEW FLOW: Payment first (if not active), then Home.
+          // Profile setup is done inside Home → Account Information.
+          if (!member.membershipActive) {
+            await _navigateToPayment();
+          } else {
+            // Already paid – go straight to Home
             Navigator.pushNamedAndRemoveUntil(
-              context, 
-              AppRoutes.profileSetup, 
-              (route) => false
-            );
-          } 
-          // Step 2: Check if Payment/Membership is active
-          else if (!member.membershipActive) {
-            Navigator.pushNamedAndRemoveUntil(
-              context, 
-              AppRoutes.payment, 
-              (route) => false
-            );
-          } 
-          // Step 3: All requirements met, go to Dashboard
-          else {
-            Navigator.pushNamedAndRemoveUntil(
-              context, 
-              AppRoutes.home, 
-              (route) => false
+              context,
+              AppRoutes.home,
+              (route) => false,
             );
           }
         }
@@ -93,12 +81,61 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     }
   }
 
+  Future<void> _navigateToPayment() async {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final token = await auth.getToken();
+    if (token == null) {
+      _showError('Session expired. Please log in again.');
+      Navigator.pushReplacementNamed(context, AppRoutes.login);
+      return;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/member/payment-url'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          Navigator.pushReplacementNamed(
+            context,
+            AppRoutes.payment,
+            arguments: {
+              'paymentUrl': data['paymentUrl'],
+              'amount': (data['amountToPay'] ?? 50).toDouble(),
+              'currency': data['currency'] ?? 'USD',
+            },
+          );
+        }
+      } else {
+        throw Exception('Failed to get payment URL');
+      }
+    } catch (e) {
+      if (mounted) {
+        _showError('Payment error: $e');
+        // Optionally go back to login
+        Navigator.pushReplacementNamed(context, AppRoutes.login);
+      }
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Verify Email'),
-        automaticallyImplyLeading: false, 
+        automaticallyImplyLeading: false,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -134,7 +171,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             const SizedBox(height: 16),
             TextButton(
               onPressed: () {
-                // If they cancel verification, take them back to login
                 Navigator.pushReplacementNamed(context, AppRoutes.login);
               },
               child: const Text("Back to Login"),

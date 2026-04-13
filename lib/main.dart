@@ -6,8 +6,8 @@ import 'screens/splash_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
-import 'screens/otp_verification_screen.dart'; // NEW IMPORT
-import 'screens/profile_setup_screen.dart';
+import 'screens/otp_verification_screen.dart';
+// import 'screens/profile_setup_screen.dart';  // REMOVED - no longer used
 import 'screens/payment_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/submit_boost_screen.dart';
@@ -64,8 +64,7 @@ class MyApp extends StatelessWidget {
           AppRoutes.welcome: (context) => const WelcomeScreen(),
           AppRoutes.login: (context) => const LoginScreen(),
           AppRoutes.register: (context) => const RegisterScreen(),
-          AppRoutes.profileSetup: (context) => const ProfileSetupScreen(),
-
+          // AppRoutes.profileSetup: (context) => const ProfileSetupScreen(), // REMOVED
           AppRoutes.payment: (context) {
             final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
             return PaymentScreen(
@@ -74,7 +73,6 @@ class MyApp extends StatelessWidget {
               currency: args['currency'] ?? 'USD',
             );
           },
-
           AppRoutes.home: (context) => const HomeScreen(),
           AppRoutes.submitBoost: (context) => const SubmitBoostScreen(),
           AppRoutes.myBoosts: (context) => const MyBoostsScreen(),

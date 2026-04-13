@@ -122,6 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Avatar + name + membership chip
             Row(
               children: [
                 ProfileAvatar(
@@ -157,8 +158,61 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
 
+            // ========== PROFILE INCOMPLETE REMINDER BANNER ==========
+            if (!profile.profileComplete) ...[
+              const SizedBox(height: 16),
+              Card(
+                color: Colors.orange.shade50,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: Colors.orange, size: 24),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Complete your profile',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Text(
+                              'Add your name and location to get the most out of the app.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, AppRoutes.settings);
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                        ),
+                        child: const Text('Go to Profile'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+            // =======================================================
+
             const SizedBox(height: 24),
 
+            // Stats card
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -181,6 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 12),
 
+            // Action grid
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),

@@ -9,6 +9,7 @@ class MemberProfile {
   final String? tiktokUrl;
 
   final bool membershipActive;
+  final bool profileComplete; // <-- NEW FIELD
   final int monthlyBoostsUsed;
   final int maxMonthlyBoosts;
   final int supportsGiven;
@@ -24,6 +25,7 @@ class MemberProfile {
     this.facebookUrl,
     this.tiktokUrl,
     required this.membershipActive,
+    required this.profileComplete,
     required this.monthlyBoostsUsed,
     required this.maxMonthlyBoosts,
     required this.supportsGiven,
@@ -44,6 +46,7 @@ class MemberProfile {
       facebookUrl: s(json['facebook_url']),
       tiktokUrl: s(json['tiktok_url']),
       membershipActive: json['membership_active'] == true,
+      profileComplete: json['profile_complete'] == true, // <-- PARSE FROM JSON
       monthlyBoostsUsed: _toInt(json['monthly_boosts_used']),
       maxMonthlyBoosts: _toInt(json['max_monthly_boosts'], defaultValue: 20),
       supportsGiven: _toInt(json['supports_given']),
