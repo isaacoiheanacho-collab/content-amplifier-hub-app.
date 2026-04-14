@@ -8,6 +8,7 @@ import '../models/member_profile.dart';
 import '../utils/theme.dart';
 import '../utils/routes.dart';
 import '../widgets/profile_avatar.dart';
+import 'image_viewer_screen.dart'; // Import the new screen
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -122,12 +123,27 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Avatar + name + membership chip
+            // Avatar + name + membership chip (now clickable)
             Row(
               children: [
-                ProfileAvatar(
-                  radius: 30,
-                  imageUrl: profile.profilePhotoUrl,
+                GestureDetector(
+                  onTap: () {
+                    if (profile.profilePhotoUrl != null && profile.profilePhotoUrl!.isNotEmpty) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ImageViewerScreen(
+                            imageUrl: profile.profilePhotoUrl!,
+                            heroTag: 'profile_photo_${stats.email}',
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: ProfileAvatar(
+                    radius: 30,
+                    imageUrl: profile.profilePhotoUrl,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

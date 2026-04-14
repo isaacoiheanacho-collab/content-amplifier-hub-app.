@@ -7,7 +7,6 @@ import '../services/auth_service.dart';
 import '../services/boost_service.dart';
 import '../models/member_profile.dart';
 import '../utils/theme.dart';
-import '../widgets/primary_button.dart'; // optional, but we reuse theme
 
 class AccountInformationScreen extends StatefulWidget {
   const AccountInformationScreen({super.key});
@@ -19,6 +18,7 @@ class AccountInformationScreen extends StatefulWidget {
 class _AccountInformationScreenState extends State<AccountInformationScreen> {
   bool _loading = true;
   bool _saving = false;
+  bool _isEditing = false; // New: edit mode flag
 
   MemberProfile? _profile;
   late BoostService _boostService;
@@ -26,18 +26,20 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
   final ImagePicker _picker = ImagePicker();
   File? _selectedImageFile;
 
+  // Controllers for edit mode
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  // We'll replace the simple region field with dropdowns
-  String? _selectedCountry;
-  String? _selectedState;
   final TextEditingController _youtubeController = TextEditingController();
   final TextEditingController _facebookController = TextEditingController();
   final TextEditingController _tiktokController = TextEditingController();
 
+  // Dropdown selections
+  String? _selectedCountry;
+  String? _selectedState;
+
   String? _photoUrl;
 
-  // Country/State map (same as in ProfileSetupScreen)
+  // Country/State map (same as before)
   final Map<String, List<String>> countryStates = {
     "United States": [
       "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
@@ -108,7 +110,7 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
         _tiktokController.text = profile.tiktokUrl ?? '';
         _photoUrl = profile.profilePhotoUrl;
 
-        // Parse existing region (format: "Country, State")
+        // Parse existing region
         final region = profile.region ?? '';
         if (region.contains(',')) {
           final parts = region.split(',');
@@ -180,7 +182,6 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
 
     setState(() => _saving = true);
 
-    // Combine country and state into region string
     final region = "$_selectedCountry, $_selectedState";
 
     final updated = MemberProfile(
@@ -193,7 +194,7 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
       facebookUrl: _facebookController.text.trim(),
       tiktokUrl: _tiktokController.text.trim(),
       membershipActive: _profile!.membershipActive,
-      profileComplete: _profile!.profileComplete, // will be set to true on backend
+      profileComplete: _profile!.profileComplete,
       monthlyBoostsUsed: _profile!.monthlyBoostsUsed,
       maxMonthlyBoosts: _profile!.maxMonthlyBoosts,
       supportsGiven: _profile!.supportsGiven,
@@ -209,8 +210,9 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
       setState(() {
         _saving = false;
         if (success) {
+          _isEditing = false;      // Exit edit mode on success
           _selectedImageFile = null;
-          _loadProfile(); // Refresh to get updated data (including profile_complete)
+          _loadProfile();          // Refresh data
         }
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -228,6 +230,14 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
     );
   }
 
+  void _cancelEditing() {
+    setState(() {
+      _isEditing = false;
+      // Reload original data to discard changes
+      _loadProfile();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -236,111 +246,206 @@ class _AccountInformationScreenState extends State<AccountInformationScreen> {
       );
     }
 
+    if (_profile == null) {
+      return const Scaffold(
+        body: Center(child: Text('No profile data')),
+      );
+    }
+
     final countries = countryStates.keys.toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Account Information")),
+      appBar: AppBar(
+        title: const Text("Account Information"),
+        actions: [
+          if (!_isEditing)
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () => setState(() => _isEditing = true),
+              tooltip: 'Edit Profile',
+            ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Photo picker (unchanged)
-            GestureDetector(
-              onTap: _saving ? null : _showPhotoOptions,
-              child: CircleAvatar(
-                radius: 50,
-                backgroundColor: Colors.grey[200],
-                backgroundImage: _selectedImageFile != null
-                    ? FileImage(_selectedImageFile!) as ImageProvider
-                    : (_photoUrl != null && _photoUrl!.isNotEmpty
-                        ? NetworkImage(_photoUrl!)
-                        : null),
-                child: (_photoUrl == null && _selectedImageFile == null)
-                    ? const Icon(Icons.person, size: 50, color: Colors.grey)
-                    : null,
-              ),
-            ),
+            // ---------- PHOTO ----------
+            if (_isEditing)
+              GestureDetector(
+                onTap: _saving ? null : _showPhotoOptions,
+                child: _buildPhotoAvatar(),
+              )
+            else
+              _buildPhotoAvatar(), // non-tappable in view mode
+
             const SizedBox(height: 20),
 
-            // Full Name
-            _buildField(_nameController, "Full Name"),
+            // ---------- FULL NAME ----------
+            if (_isEditing)
+              _buildTextField(_nameController, "Full Name")
+            else
+              _buildReadOnlyText(_profile!.name ?? 'Not set', "Full Name"),
+
             const SizedBox(height: 16),
 
-            // Phone Number
-            _buildField(_phoneController, "Phone Number"),
+            // ---------- PHONE ----------
+            if (_isEditing)
+              _buildTextField(_phoneController, "Phone Number")
+            else
+              _buildReadOnlyText(_profile!.phone ?? 'Not set', "Phone Number"),
+
             const SizedBox(height: 16),
 
-            // Country Dropdown
-            DropdownButtonFormField<String>(
-              value: _selectedCountry,
-              decoration: const InputDecoration(
-                labelText: "Country",
-                prefixIcon: Icon(Icons.public),
-                border: OutlineInputBorder(),
+            // ---------- COUNTRY & STATE ----------
+            if (_isEditing) ...[
+              DropdownButtonFormField<String>(
+                value: _selectedCountry,
+                decoration: const InputDecoration(
+                  labelText: "Country",
+                  prefixIcon: Icon(Icons.public),
+                  border: OutlineInputBorder(),
+                ),
+                items: countries.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                onChanged: _saving
+                    ? null
+                    : (v) {
+                        setState(() {
+                          _selectedCountry = v;
+                          _selectedState = null;
+                        });
+                      },
               ),
-              items: countries.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-              onChanged: _saving
-                  ? null
-                  : (v) {
-                      setState(() {
-                        _selectedCountry = v;
-                        _selectedState = null; // reset state when country changes
-                      });
-                    },
-            ),
-            const SizedBox(height: 16),
-
-            // State/Region Dropdown (dependent on selected country)
-            DropdownButtonFormField<String>(
-              value: _selectedState,
-              decoration: const InputDecoration(
-                labelText: "State / Region",
-                prefixIcon: Icon(Icons.location_city),
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedState,
+                decoration: const InputDecoration(
+                  labelText: "State / Region",
+                  prefixIcon: Icon(Icons.location_city),
+                  border: OutlineInputBorder(),
+                ),
+                items: _selectedCountry == null
+                    ? []
+                    : countryStates[_selectedCountry]!
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                        .toList(),
+                onChanged: _saving ? null : (v) => setState(() => _selectedState = v),
               ),
-              items: _selectedCountry == null
-                  ? []
-                  : countryStates[_selectedCountry]!
-                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                      .toList(),
-              onChanged: _saving ? null : (v) => setState(() => _selectedState = v),
-            ),
+            ] else
+              _buildReadOnlyText(_profile!.region ?? 'Not set', "Country & State"),
+
             const SizedBox(height: 16),
 
-            // Social links (unchanged)
-            _buildField(_youtubeController, "YouTube Link"),
-            const SizedBox(height: 16),
-            _buildField(_facebookController, "Facebook Link"),
-            const SizedBox(height: 16),
-            _buildField(_tiktokController, "TikTok Link"),
+            // ---------- SOCIAL LINKS ----------
+            if (_isEditing) ...[
+              _buildTextField(_youtubeController, "YouTube Link"),
+              const SizedBox(height: 16),
+              _buildTextField(_facebookController, "Facebook Link"),
+              const SizedBox(height: 16),
+              _buildTextField(_tiktokController, "TikTok Link"),
+            ] else ...[
+              _buildReadOnlyText(_profile!.youtubeUrl ?? 'Not set', "YouTube Link"),
+              const SizedBox(height: 16),
+              _buildReadOnlyText(_profile!.facebookUrl ?? 'Not set', "Facebook Link"),
+              const SizedBox(height: 16),
+              _buildReadOnlyText(_profile!.tiktokUrl ?? 'Not set', "TikTok Link"),
+            ],
+
             const SizedBox(height: 30),
 
-            // Save button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _saving ? null : _saveProfile,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+            // ---------- BUTTONS ----------
+            if (_isEditing)
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _saving ? null : _saveProfile,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: _saving
+                          ? const CircularProgressIndicator()
+                          : const Text("Save Changes"),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _saving ? null : _cancelEditing,
+                      child: const Text("Cancel"),
+                    ),
+                  ),
+                ],
+              )
+            else
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => setState(() => _isEditing = true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text("Edit Profile"),
                 ),
-                child: _saving
-                    ? const CircularProgressIndicator()
-                    : const Text("Save Changes"),
               ),
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildField(TextEditingController controller, String label) {
+  Widget _buildPhotoAvatar() {
+    return CircleAvatar(
+      radius: 50,
+      backgroundColor: Colors.grey[200],
+      backgroundImage: _selectedImageFile != null
+          ? FileImage(_selectedImageFile!) as ImageProvider
+          : (_photoUrl != null && _photoUrl!.isNotEmpty
+              ? NetworkImage(_photoUrl!)
+              : null),
+      child: (_photoUrl == null && _selectedImageFile == null)
+          ? const Icon(Icons.person, size: 50, color: Colors.grey)
+          : null,
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label) {
     return TextField(
       controller: controller,
       decoration: InputDecoration(
         labelText: label,
         border: const OutlineInputBorder(),
+      ),
+    );
+  }
+
+  Widget _buildReadOnlyText(String value, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.grey),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+        ],
       ),
     );
   }
