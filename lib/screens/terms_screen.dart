@@ -10,94 +10,189 @@ class TermsScreen extends StatelessWidget {
       body: const SingleChildScrollView(
         padding: EdgeInsets.all(16),
         child: Text(
-          '''Terms and Conditions (Draft)
-Last updated: March 2026.
+          # Terms and Conditions
 
-1. About Content Amplifier Hub
-Content Amplifier Hub (“CAH”, “we”, “us”, “our”) is a membership‑based platform that helps content creators (“Members”, “you”) amplify each other’s social media posts by coordinating/encourage mandatory engagement from within the app. CAH is owned and operated by [Content Amplifier Hub, registered in UAE].
+**Last updated: April 2026**
 
-By creating an account, accessing, or using CAH, you agree to be bound by these Terms and Conditions (“Terms”). If you do not agree, you must not use CAH.
+## 1. About Content Amplifier Hub
+Content Amplifier Hub (“CAH”, “we”, “us”, “our”) is a membership‑based platform that brings together two types of Members:
 
-2. Eligibility and Accounts
-You must be at least 18 years old, or the age of legal majority in your jurisdiction, to become a Member.
-You are responsible for providing accurate information during registration and keeping it up to date.
-You are responsible for maintaining the confidentiality of your login credentials and for all activity under your account.
-We may suspend or terminate accounts that provide false information, misuse the service, or violate these Terms.
+- **Creator Members** – content creators who submit their social media posts (“Boost Requests”) to receive voluntary, high‑quality engagement from other Members.
+- **Support Members** – members who join for free and earn points by genuinely engaging with Creator Members’ content on third‑party platforms (Facebook, TikTok, YouTube, etc.). Support Members do not pay any membership or maintenance fees.
 
-3. Membership, Fees, and Payment
-CAH operates on a paid membership model. Details of membership fees, billing periods, and included benefits are shown in‑app or on our website.
-Fees are payable in advance and are generally non‑refundable, except where required by law or explicitly stated otherwise.
-Membership fee is paid once for each account.
-Maintenance may auto‑renew unless you cancel before the renewal date, according to the instructions provided in the app or billing portal.
-We may change our pricing or membership structure in the future, with reasonable notice where required. Continued use after changes take effect constitutes acceptance of the new fees.
+CAH is owned and operated by [Content Amplifier Hub, registered in UAE]. By creating an account, accessing, or using CAH, you agree to be bound by these Terms. If you do not agree, you must not use CAH.
 
-4. Service Description (What CAH Does and Does Not Do)
-CAH allows Members to:
-- Create a profile and list their social media accounts.
-- Submit a limited number of content links (“Boost Requests”) per period (e.g., up to 10 per month).
-- View and voluntarily engage with other Members’ content via links that open in third‑party platforms (e.g., Facebook, TikTok, YouTube).
+## 2. Eligibility, Accounts, and Mandatory Social Media Linking
 
-CAH does not:
-- Guarantee any specific number of views, likes, follows, comments, or financial results.
-- Automatically like, comment, follow, or view content on your behalf on third‑party platforms.
-- Provide bots, fake accounts, or artificially generated engagement.
+### 2.1 Age and Accuracy
+- You must be at least 18 years old, or the age of legal majority in your jurisdiction.
+- You must provide accurate registration information and keep it updated.
+- You are responsible for maintaining the confidentiality of your login credentials and for all activity under your account.
 
-Your participation in viewing, liking, commenting, or sharing content is always voluntary and performed by you directly on the third‑party platforms.
+### 2.2 One Account Per Person
+- Each natural person may hold **only one active CAH account**. Multiple accounts (e.g., one Creator account and one Support account, or multiple Support accounts) are strictly prohibited.
+- Businesses, organisations, or groups must contact us for approval before creating an account; each approved entity may have only one account.
 
-5. Member Obligations and Acceptable Use
-You agree that you will:
-- Submit only content that:
-  - You own or have the right to share;
-  - Complies with the terms and policies of each platform (e.g., Facebook, TikTok, YouTube);
-  - Does not contain illegal, hateful, violent, deceptive, or otherwise inappropriate material.
-- Not use CAH to:
-  - Buy, sell, or simulate fake engagement or violate third‑party platform rules on inauthentic behaviour;
-  - Harass, abuse, or harm other Members;
-  - Post spam, scams, or misleading content;
-  - Attempt to reverse engineer, hack, or overload our systems.
+### 2.3 Mandatory Social Media Account Linking
+- To use CAH as **either a Creator Member or a Support Member**, you must link **at least one active social media account** that you personally own and regularly use. Supported platforms include (but are not limited to): TikTok, YouTube, Facebook, Instagram, X (Twitter), and LinkedIn.
+- The linked social media account must be **publicly accessible** or visible to CAH for the purpose of verifying authenticity and enabling engagement actions.
+- You may link multiple social media accounts to your CAH profile.
 
-We may limit, suspend, or terminate your account if we believe you have violated these obligations or applicable law.
+### 2.4 Why Social Media Accounts Are Required
+- **For Support Members**: All engagement actions (viewing, liking, commenting, sharing) take place entirely on the third‑party platform where the Creator’s content is posted. Without a valid, active social media account, you cannot perform these actions, and therefore you cannot earn points or rewards.
+- **For Creator Members**: You need linked social media accounts to submit Boost Requests (content must be hosted on those platforms) and to support other creators.
 
-6. Third‑Party Platforms and Links
-CAH contains links that direct you to third‑party platforms (such as Facebook, TikTok, YouTube). We do not own or control those services and are not responsible for their content, policies, or availability.
-Your use of third‑party platforms is governed by their own terms and conditions and privacy policies. You are solely responsible for complying with those terms.
+### 2.5 Verification and Ongoing Compliance
+- CAH reserves the right to verify that your linked social media accounts are active and belong to you (e.g., by asking you to post a confirmation code or by reviewing public activity).
+- If you unlink all social media accounts, your CAH account will be suspended until at least one valid account is re‑linked.
+- Providing fake, inactive, or non‑owned social media accounts is a violation of these Terms and may result in immediate termination and forfeiture of any accrued points or rewards.
 
-7. Intellectual Property
-We (or our licensors) own all rights in and to CAH, including logos, trademarks, design, software, and content we provide.
-You retain ownership of the content you submit, but you grant us a non‑exclusive, worldwide licence to display, store, and process that content within CAH for the purpose of operating the service.
-You may not copy, modify, resell, or create derivative works from our service or branding without our prior written consent.
+### 2.6 Suspension and Termination
+- We may suspend or terminate accounts that provide false information, misuse the service, violate these Terms, or fail to maintain a linked, active social media account.
 
-8. Data and Privacy
-We collect and process personal data in accordance with our Privacy Policy, which forms part of these Terms. Please read it carefully before using CAH.
+## 3. Membership Types and Fees
 
-9. Termination
-You may stop using CAH at any time and, where offered, cancel your membership via the app or your billing provider.
-We reserve the right to suspend or terminate your account or access to CAH at our discretion if:
-- You breach these Terms or applicable law;
-- We are required to do so by law or by a third‑party platform;
-- We discontinue or materially change the service.
-Upon termination, your right to access CAH will cease. Certain clauses (e.g., fees owed, disclaimers, limitation of liability) will continue to apply.
+### 3.1 Creator Members
+- Creator Members pay a **yearly membership fee** (see in‑app pricing) **plus** a **monthly maintenance fee**.
+- Creator Members may submit a limited number of Boost Requests per month (e.g., up to 10).
+- Creator Members are encouraged to actively support other Creator Members’ content (see section 5).
+- Fees are non‑refundable except as required by law.
 
-10. Disclaimers and Limitation of Liability
-CAH is provided on an “as is” and “as available” basis, without warranties of any kind, whether express or implied, including but not limited to fitness for a particular purpose, non‑infringement, or accuracy.
-We do not guarantee:
-- Any particular number of engagements, views, followers, or growth;
-- That the service will be error‑free, uninterrupted, or secure at all times;
-- That your accounts on third‑party platforms will not be affected by their own policies.
+### 3.2 Support Members
+- Support Members join **for free** – no membership fee and no monthly maintenance fee.
+- Support Members earn points by engaging with Creator Members’ content (viewing, liking, commenting, sharing) and by referring new members.
+- Support Members may upgrade to a Creator membership at any time, subject to applicable fees.
+
+### 3.3 Fee Changes
+We may change membership fees or the reward structure with reasonable notice. Continued use after changes take effect constitutes acceptance.
+
+## 4. Reward System for Support Members
+
+Support Members earn **points** for **genuine engagement** they perform on a Creator Member’s Boost Request. An “engagement” means any of the following actions, performed manually and in good faith:
+
+- Viewing the content (watching for a meaningful duration – see Section 6)
+- Liking/reacting to the content
+- Leaving a genuine, non‑spam comment
+- Sharing the content (via the third‑party platform’s native share function)
+
+**Three engagements = 1 point.**
+
+There are no separate point values for different types of engagement. Repeated engagements on the same Boost Request may be limited to prevent abuse (e.g., multiple likes or comments from the same Support Member on the same post will not earn additional points).
+
+- **1 point = 1 cent (USD)** of reward value.
+- **100 points = 1 star (USD 1.00)**.
+- **20 stars = minimum reward claim** (USD 20.00).
+
+Support Members may claim their accumulated reward once they have at least **20 stars** (2,000 points). Claims are processed monthly and paid via the payment method on file (e.g., PayPal, bank transfer, or Stripe). CAH reserves the right to verify that points were earned through legitimate, platform‑compliant engagement before approving a claim.
+
+Points are non‑transferable and expire if the Support Member’s account is inactive for 6 consecutive months.
+
+### 4.1 Referral Bonus
+Support Members also earn **100 points** for each new paying member (Creator Member or upgraded Support Member) they refer, provided the referred member remains active for at least 30 days.
+
+## 5. Obligations for All Members
+
+### 5.1 Creator‑Specific Obligations
+- You may only submit content that you own or have the right to share.
+- Your content must comply with the terms and policies of each third‑party platform (e.g., Facebook, TikTok, YouTube).
+- **Prohibited Content**: You must not submit or promote any content that is:
+  - Abusive, harassing, defamatory, or threatening;
+  - Pornographic, sexually explicit, or contains nudity;
+  - Violent, inciting violence, or promoting self‑harm;
+  - Illegal, fraudulent, deceptive, or infringing on intellectual property.
+- **Encouraged Behaviour**: Creators are strongly encouraged to:
+  - Support other Creator Members’ content (view, like, comment, share) – this builds community and increases your own visibility.
+  - Refer other creators and supporters to CAH – referrals benefit everyone.
+
+### 5.2 Support‑Specific Obligations
+- You must engage with Boost Requests **genuinely** (no bots, scripts, or automated tools).
+- You may not artificially inflate points (e.g., repeatedly opening the same link without meaningful interaction).
+- You must follow the **Guidelines for Effective Engagement** (Section 6) to ensure your actions have a positive impact on the Creator’s content performance.
+- You must comply with the terms of third‑party platforms when liking, commenting, or sharing.
+
+### 5.3 Prohibitions for All Members
+- No abusive, hateful, or threatening behaviour toward other Members.
+- No spamming, scamming, or posting misleading content.
+- No reverse engineering, hacking, or attempting to overload CAH systems.
+- No buying, selling, or trading points or rewards outside the CAH platform.
+
+Violations may result in immediate suspension or termination of your account and forfeiture of any accrued points or rewards.
+
+## 6. Guidelines for Effective Engagement (Platform‑Specific Best Practices)
+
+The goal of CAH is not simply to generate clicks, but to help Creator Members’ content perform better within each platform’s algorithm. Superficial or low‑quality engagement (e.g., opening a link for one second and closing it) does not benefit creators and may violate these Terms.
+
+When you receive a Boost Request, you must perform the engagement actions **as if you were a genuine viewer who discovered the content organically**. Follow these platform‑specific guidelines:
+
+### 6.1 Facebook
+- **Qualified views**: Watch the video for at least 5–10 seconds, or until you have seen the core message. Facebook distinguishes views that count toward monetisation from very short or repeat views.
+- **Reactions**: Use the appropriate reaction (Like, Love, Care, etc.) if you genuinely appreciate the content.
+- **Comments**: Leave a short, relevant comment (e.g., “Great point!” or “Thanks for sharing”). Avoid generic comments like “nice” or emoji‑only.
+- **Shares**: Share the post only if you believe your own audience would find it valuable.
+
+### 6.2 TikTok
+- **Watch time and completion**: Watch the video all the way to the end, or at least through the most engaging part. TikTok’s algorithm heavily rewards high completion rates and replays.
+- **Likes and comments**: Tap the heart and leave a short, authentic comment. Comments that reference specific parts of the video are best.
+- **Saves and shares**: If the content is useful or entertaining, save it or share it with a friend. These actions signal high interest to the algorithm.
+
+### 6.3 YouTube
+- **Watch duration**: Watch for at least 30–60 seconds, or ideally until the end of the video. YouTube prioritises session time and average view duration.
+- **Likes and comments**: Click the thumbs‑up and leave a comment that adds value (e.g., “This helped me understand X”). Avoid “first” or “nice video” comments.
+- **Subscribing**: If the creator’s channel aligns with your interests, consider subscribing – this benefits both the creator and your own feed.
+
+### 6.4 General Rules
+- Do **not** open the same Boost Request multiple times from the same CAH account – only the first genuine engagement per request will count.
+- Do **not** use VPNs or incognito modes to artificially inflate views – this violates platform policies and these Terms.
+- If you are unsure how to engage properly, default to: **watch at least 10 seconds, like, and leave a short comment**.
+
+CAH may audit engagement patterns and suspend or remove points for members who consistently perform low‑quality or suspicious actions.
+
+## 7. Service Description (What CAH Does and Does Not Do)
+
+CAH provides a platform where:
+- Creator Members submit Boost Requests.
+- Support Members voluntarily view and engage with those requests to earn points.
+- All engagement is performed by real people on third‑party platforms.
+
+CAH does **not**:
+- Guarantee any specific number of views, likes, comments, shares, or monetised outcomes.
+- Use bots, fake accounts, or artificial engagement.
+- Own or control any third‑party platform (e.g., TikTok, YouTube, Facebook).
+- Promise that any engagement will result in earnings for creators – each platform’s monetisation rules are independent and subject to change.
+
+## 8. Third‑Party Platforms and Links
+CAH contains links to third‑party platforms. We are not responsible for their content, policies, or availability. Your use of those platforms is governed by their own terms and privacy policies.
+
+## 9. Intellectual Property
+- You retain ownership of the content you submit.
+- You grant CAH a non‑exclusive, worldwide licence to display, store, and process your content within the app.
+- CAH’s logos, trademarks, design, and software are owned by us or our licensors and may not be copied or reused without permission.
+
+## 10. Data and Privacy
+We collect and process personal data in accordance with our **Privacy Policy**, which forms part of these Terms. Please read it carefully.
+
+## 11. Termination
+- You may cancel your membership at any time via the app.
+- We may suspend or terminate your account if you breach these Terms, violate applicable law, or misuse the reward system.
+- Upon termination, any accrued but unclaimed points may be forfeited.
+
+## 12. Disclaimers and Limitation of Liability
+CAH is provided “as is” and “as available”. We do not warrant that the service will be uninterrupted, error‑free, or secure.
+
 To the maximum extent permitted by law:
-- We will not be liable for any indirect, incidental, special, consequential, or punitive damages, including lost profits or data, arising from your use of CAH.
-- Our total liability for any claim relating to CAH will not exceed the amount you paid to us in the 12 months preceding the claim.
+- We are not liable for indirect, incidental, or consequential damages, including lost profits or data.
+- Our total liability shall not exceed the amount you paid to us in the 12 months preceding the claim.
 
-11. Changes to These Terms
-We may modify these Terms from time to time. We will notify you by updating the “Last updated” date and, where appropriate, providing additional notice (e.g., in‑app message or email). Your continued use of CAH after changes take effect constitutes acceptance of the revised Terms.
+## 13. Changes to These Terms
+We may update these Terms. The “Last updated” date will be revised. Continued use after changes constitutes acceptance.
 
-12. Governing Law and Disputes
-These Terms are governed by the laws of [jurisdiction], without regard to its conflict of laws rules. Any disputes shall be subject to the exclusive jurisdiction of the courts of [city/country], unless mandatory law provides otherwise.
+## 14. Governing Law and Disputes
+These Terms are governed by the laws of [UAE / your jurisdiction]. Disputes shall be subject to the exclusive jurisdiction of the courts of [city/country].
 
-13. Contact
-If you have any questions about these Terms, contact us at:
-Email: [your contact email]
-Address: [your business address]''',
+## 15. Contact
+For questions or support, contact us at:
+- Email: [your contact email]
+- Address: [your business address],
           style: TextStyle(fontSize: 16),
         ),
       ),

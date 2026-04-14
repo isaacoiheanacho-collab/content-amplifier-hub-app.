@@ -123,4 +123,18 @@ class AuthService with ChangeNotifier {
     _user = null;
     notifyListeners();
   }
+
+  /// Sets the member type (creator or support) for the currently authenticated user.
+  Future<void> setMemberType(String type) async {
+    final token = await getToken();
+    if (token == null) return;
+    await http.post(
+      Uri.parse('$baseUrl/auth/set-member-type'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'memberType': type}),
+    );
+  }
 }

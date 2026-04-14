@@ -21,6 +21,7 @@ class OtpVerificationScreen extends StatefulWidget {
 class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final _otpController = TextEditingController();
   bool _isLoading = false;
+  String? _selectedMemberType; // 'creator' or 'support'
 
   Future<void> _verify() async {
     if (_otpController.text.trim().length < 6) {
@@ -38,6 +39,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
       if (result['success']) {
         final Member member = result['member'];
+        final selectedType = _selectedMemberType ?? 'creator';
+        await auth.setMemberType(selectedType);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -47,17 +50,24 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             ),
           );
 
-          // NEW FLOW: Payment first (if not active), then Home.
-          // Profile setup is done inside Home → Account Information.
-          if (!member.membershipActive) {
-            await _navigateToPayment();
-          } else {
-            // Already paid – go straight to Home
+          if (selectedType == 'support') {
+            // Support member: go directly to Support Home (no payment)
             Navigator.pushNamedAndRemoveUntil(
               context,
-              AppRoutes.home,
+              AppRoutes.supportHome,
               (route) => false,
             );
+          } else {
+            // Creator flow: payment if not active, else home
+            if (!member.membershipActive) {
+              await _navigateToPayment();
+            } else {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                AppRoutes.home,
+                (route) => false,
+              );
+            }
           }
         }
       } else {
@@ -162,7 +172,29 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               icon: Icons.lock_clock,
               keyboardType: TextInputType.number,
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
+            const Text('Select account type:', style: TextStyle(fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                Expanded(
+                  child: RadioListTile<String>(
+                    title: const Text('Creator'),
+                    value: 'creator',
+                    groupValue: _selectedMemberType,
+                    onChanged: (val) => setState(() => _selectedMemberType = val),
+                  ),
+                ),
+                Expanded(
+                  child: RadioListTile<String>(
+                    title: const Text('Support (Free)'),
+                    value: 'support',
+                    groupValue: _selectedMemberType,
+                    onChanged: (val) => setState(() => _selectedMemberType = val),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             PrimaryButton(
               text: 'Verify Account',
               onPressed: _verify,

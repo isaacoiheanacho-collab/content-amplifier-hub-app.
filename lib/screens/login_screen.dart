@@ -52,7 +52,15 @@ class _LoginScreenState extends State<LoginScreen> {
       if (result['success']) {
         final member = result['member'];
 
-        // NEW FLOW: Payment first if membership not active, else Home
+        // Check if the member is a support member
+        if (member.memberType == 'support') {
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, AppRoutes.supportHome);
+          }
+          return;
+        }
+
+        // Creator flow: payment if membership not active, else home
         if (!member.membershipActive) {
           await _navigateToPayment();
         } else {

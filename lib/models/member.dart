@@ -9,6 +9,9 @@ class Member {
   // to check if name and region are actually present.
   final String? fullName; 
   final String? region;
+  
+  // Member type: 'creator' or 'support'
+  final String memberType;
 
   Member({
     required this.id,
@@ -18,6 +21,7 @@ class Member {
     required this.paymentComplete,
     this.fullName,
     this.region,
+    required this.memberType,
   });
 
   factory Member.fromJson(Map<String, dynamic> json) {
@@ -34,6 +38,7 @@ class Member {
       // Map both variants of naming (backend full_name vs profile name)
       fullName: s(json['full_name'] ?? json['name']),
       region: s(json['region']),
+      memberType: json['member_type'] ?? 'creator',
     );
   }
 

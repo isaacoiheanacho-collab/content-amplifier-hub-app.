@@ -20,4 +20,8 @@ class AppRoutes {
   static const billing = '/billing';
   static const settingsMenu = '/settings-menu';
   static const loginMenu = '/login-menu';
+
+  // NEW SUPPORT MEMBER ROUTES
+  static const supportHome = '/support-home';
+  static const bankInfo = '/bank-info';
 }
