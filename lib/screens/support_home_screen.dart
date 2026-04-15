@@ -7,6 +7,7 @@ import '../models/boost.dart';
 import '../utils/theme.dart';
 import '../utils/routes.dart';
 import '../widgets/profile_avatar.dart';
+import 'reward_analyses_screen.dart';  // <-- ADDED IMPORT
 
 class SupportHomeScreen extends StatefulWidget {
   const SupportHomeScreen({super.key});
@@ -121,35 +122,22 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
     }
   }
 
-  Future<void> _claimReward() async {
-    if (!_hasBankInfo) {
-      final result = await Navigator.pushNamed(context, AppRoutes.bankInfo);
-      if (result == true) await _loadData();
-      return;
-    }
+  Future<void> _logout() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Claim Reward'),
-        content: Text('You have $_stars stars. Claiming will deduct 20 stars and send you \$20. Proceed?'),
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Claim')),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Logout')),
         ],
       ),
     );
     if (confirm == true) {
-      final success = await _supportService.claimReward();
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Claim submitted! You will receive \$20 within 5-7 days.')),
-        );
-        await _loadData();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Claim failed. Please contact support.')),
-        );
-      }
+      final auth = Provider.of<AuthService>(context, listen: false);
+      await auth.logout();
+      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
     }
   }
 
@@ -185,6 +173,7 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
                 ],
               ),
               const SizedBox(height: 24),
+
               // Stats cards
               Card(
                 child: Padding(
@@ -200,6 +189,7 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+
               // Support Now section
               Text('Support Now', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
@@ -272,22 +262,47 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
                   },
                 ),
               const SizedBox(height: 24),
-              if (_stars >= 20)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _claimReward,
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    child: const Text('Claim Your Reward (\$20)'),
+
+              // Profile Menu Section
+              const Text('Profile', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              _menuCard(
+                icon: Icons.person_outline,
+                title: 'Account Information',
+                subtitle: 'Update your name, photo, region, and social links',
+                onTap: () => Navigator.pushNamed(context, AppRoutes.accountInfo),
+              ),
+              const SizedBox(height: 12),
+              _menuCard(
+                icon: Icons.analytics_outlined,
+                title: 'Reward Analyses',
+                subtitle: 'View your earnings and claim rewards',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => RewardAnalysesScreen(
+                      points: _points,
+                      stars: _stars,
+                      hasBankInfo: _hasBankInfo,
+                      onRewardClaimed: _loadData,
+                    ),
                   ),
                 ),
+              ),
               const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pushNamed(context, AppRoutes.accountInfo),
-                  child: const Text('Edit Profile'),
-                ),
+              _menuCard(
+                icon: Icons.settings_outlined,
+                title: 'Settings',
+                subtitle: 'Terms, Privacy, Disclaimer, Help',
+                onTap: () => Navigator.pushNamed(context, AppRoutes.settingsMenu),
+              ),
+              const SizedBox(height: 12),
+              _menuCard(
+                icon: Icons.logout,
+                title: 'Logout',
+                subtitle: 'Sign out of your account',
+                onTap: _logout,
+                isDestructive: true,
               ),
             ],
           ),
@@ -302,6 +317,29 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
         Text(value.toString(), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
         Text(label, style: const TextStyle(fontSize: 12)),
       ],
+    );
+  }
+
+  Widget _menuCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Colors.grey.shade200),
+      ),
+      child: ListTile(
+        leading: Icon(icon, color: isDestructive ? Colors.red : AppColors.primary),
+        title: Text(title, style: TextStyle(color: isDestructive ? Colors.red : null)),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: onTap,
+      ),
     );
   }
 
