@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/support_service.dart';
+import '../services/boost_service.dart';
 import '../models/boost.dart';
+import '../models/member_profile.dart';
 import '../utils/theme.dart';
 import '../utils/routes.dart';
 import '../widgets/profile_avatar.dart';
-import 'reward_analyses_screen.dart';  // <-- ADDED IMPORT
+import 'image_viewer_screen.dart';
+import 'reward_analyses_screen.dart';
 
 class SupportHomeScreen extends StatefulWidget {
   const SupportHomeScreen({super.key});
@@ -18,6 +21,8 @@ class SupportHomeScreen extends StatefulWidget {
 
 class _SupportHomeScreenState extends State<SupportHomeScreen> {
   late SupportService _supportService;
+  BoostService? _boostService;
+  MemberProfile? _profile;
   List<Boost> _boosts = [];
   Map<int, Timer?> _timers = {};
   Map<int, int> _secondsRemaining = {};
@@ -42,12 +47,14 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
       return;
     }
     _supportService = SupportService(token);
+    _boostService = BoostService(token);
     await _loadData();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
+      // Load support stats
       final stats = await _supportService.getStats();
       setState(() {
         _points = stats['points'];
@@ -55,20 +62,31 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
         _supportsGiven = stats['supportsGiven'];
         _hasBankInfo = stats['hasBankInfo'];
       });
+
+      // Load profile (name, photo)
+      if (_boostService != null) {
+        final profile = await _boostService!.getMemberProfile();
+        setState(() {
+          _profile = profile;
+        });
+      }
+
+      // Load available boosts
       final boosts = await _supportService.getAvailableBoosts();
       setState(() {
         _boosts = boosts;
-        _isLoading = false;
         for (var b in boosts) {
           _secondsRemaining[b.id] = 0;
           _confirmEnabled[b.id] = false;
         }
       });
     } catch (e) {
-      setState(() => _isLoading = false);
+      print('Error loading support data: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error loading data: $e')),
       );
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
@@ -147,8 +165,21 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    final displayName = (_profile?.name != null && _profile!.name!.trim().isNotEmpty)
+        ? _profile!.name!
+        : 'Supporter';
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Support Dashboard')),
+      appBar: AppBar(
+        title: const Text('Support Dashboard'),
+        automaticallyImplyLeading: false, // ✅ Remove back arrow
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadData,
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: _loadData,
         child: SingleChildScrollView(
@@ -156,16 +187,34 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Profile header
+              // Profile header with clickable avatar
               Row(
                 children: [
-                  ProfileAvatar(radius: 30, imageUrl: null),
+                  GestureDetector(
+                    onTap: () {
+                      if (_profile?.profilePhotoUrl != null && _profile!.profilePhotoUrl!.isNotEmpty) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ImageViewerScreen(
+                              imageUrl: _profile!.profilePhotoUrl!,
+                              heroTag: 'support_profile_photo',
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    child: ProfileAvatar(
+                      radius: 30,
+                      imageUrl: _profile?.profilePhotoUrl,
+                    ),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Hi, Supporter', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                        Text('Hi, $displayName', style: Theme.of(context).textTheme.titleLarge),
                         const Chip(label: Text('Support Member', style: TextStyle(fontSize: 12))),
                       ],
                     ),
