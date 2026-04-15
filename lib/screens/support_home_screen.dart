@@ -54,7 +54,6 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      // Load support stats
       final stats = await _supportService.getStats();
       setState(() {
         _points = stats['points'];
@@ -63,7 +62,6 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
         _hasBankInfo = stats['hasBankInfo'];
       });
 
-      // Load profile (name, photo)
       if (_boostService != null) {
         final profile = await _boostService!.getMemberProfile();
         setState(() {
@@ -71,7 +69,6 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
         });
       }
 
-      // Load available boosts
       final boosts = await _supportService.getAvailableBoosts();
       setState(() {
         _boosts = boosts;
@@ -165,14 +162,15 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final displayName = (_profile?.name != null && _profile!.name!.trim().isNotEmpty)
-        ? _profile!.name!
-        : 'Supporter';
+    final displayName =
+        (_profile?.name != null && _profile!.name!.trim().isNotEmpty)
+            ? _profile!.name!
+            : (_profile?.email.split('@').first ?? 'Supporter');
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Support Dashboard'),
-        automaticallyImplyLeading: false, // ✅ Remove back arrow
+        automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -187,7 +185,6 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Profile header with clickable avatar
               Row(
                 children: [
                   GestureDetector(
@@ -223,7 +220,6 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Stats cards
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -239,7 +235,6 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Support Now section
               Text('Support Now', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
               if (_boosts.isEmpty)
@@ -312,7 +307,6 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
                 ),
               const SizedBox(height: 24),
 
-              // Profile Menu Section
               const Text('Profile', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               _menuCard(
