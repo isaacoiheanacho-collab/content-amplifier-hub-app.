@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../services/auth_service.dart';
 import '../services/support_service.dart';
 import '../services/boost_service.dart';
@@ -22,11 +23,14 @@ class SupportHomeScreen extends StatefulWidget {
 class _SupportHomeScreenState extends State<SupportHomeScreen> {
   late SupportService _supportService;
   BoostService? _boostService;
+
   MemberProfile? _profile;
   List<Boost> _boosts = [];
-  Map<int, Timer?> _timers = {};
-  Map<int, int> _secondsRemaining = {};
-  Map<int, bool> _confirmEnabled = {};
+
+  final Map<int, Timer?> _timers = {};
+  final Map<int, int> _secondsRemaining = {};
+  final Map<int, bool> _confirmEnabled = {};
+
   bool _isLoading = true;
   int _points = 0;
   double _stars = 0.0;
@@ -42,48 +46,73 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
   Future<void> _initService() async {
     final auth = Provider.of<AuthService>(context, listen: false);
     final token = await auth.getToken();
+
     if (token == null) {
-      Navigator.pushReplacementNamed(context, AppRoutes.login);
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, AppRoutes.login);
+      }
       return;
     }
+
     _supportService = SupportService(token);
     _boostService = BoostService(token);
+
     await _loadData();
   }
 
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
+
     try {
+      // 1. Load support stats
       final stats = await _supportService.getStats();
       setState(() {
         _points = stats['points'];
-        _stars = stats['stars'];
+        _stars = (stats['stars'] is num)
+            ? (stats['stars'] as num).toDouble()
+            : double.tryParse(stats['stars'].toString()) ?? 0.0;
         _supportsGiven = stats['supportsGiven'];
         _hasBankInfo = stats['hasBankInfo'];
       });
 
+      // 2. Load profile (name, photo) – same pattern as HomeScreen
       if (_boostService != null) {
-        final profile = await _boostService!.getMemberProfile();
-        setState(() {
-          _profile = profile;
-        });
+        try {
+          final profile = await _boostService!.getMemberProfile();
+          setState(() {
+            _profile = profile;
+          });
+        } catch (e) {
+          // Profile failing should not break the whole screen
+          debugPrint('Error loading member profile: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Could not load profile details')),
+            );
+          }
+        }
       }
 
+      // 3. Load available boosts
       final boosts = await _supportService.getAvailableBoosts();
       setState(() {
         _boosts = boosts;
-        for (var b in boosts) {
+        for (final b in boosts) {
           _secondsRemaining[b.id] = 0;
           _confirmEnabled[b.id] = false;
         }
       });
     } catch (e) {
-      print('Error loading support data: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading data: $e')),
-      );
+      debugPrint('Error loading support data: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading data: $e')),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -97,10 +126,12 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
       _secondsRemaining[boost.id] = 30;
       _confirmEnabled[boost.id] = false;
     });
+
     _timers[boost.id] = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
-        if (_secondsRemaining[boost.id]! > 0) {
-          _secondsRemaining[boost.id] = _secondsRemaining[boost.id]! - 1;
+        final current = _secondsRemaining[boost.id] ?? 0;
+        if (current > 0) {
+          _secondsRemaining[boost.id] = current - 1;
         }
         if (_secondsRemaining[boost.id] == 0) {
           timer.cancel();
@@ -114,6 +145,7 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
   Future<void> _confirmEngagement(Boost boost) async {
     try {
       final result = await _supportService.confirmEngagement(boost.id);
+
       setState(() {
         _boosts.removeWhere((b) => b.id == boost.id);
         _timers[boost.id]?.cancel();
@@ -121,19 +153,31 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
         _secondsRemaining.remove(boost.id);
         _confirmEnabled.remove(boost.id);
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Engagement confirmed! Points: ${result['points']}, Stars: ${result['stars']}')),
-      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Engagement confirmed! Points: ${result['points']}, Stars: ${result['stars']}',
+            ),
+          ),
+        );
+      }
+
       final stats = await _supportService.getStats();
       setState(() {
         _points = stats['points'];
-        _stars = stats['stars'];
+        _stars = (stats['stars'] is num)
+            ? (stats['stars'] as num).toDouble()
+            : double.tryParse(stats['stars'].toString()) ?? 0.0;
         _supportsGiven = stats['supportsGiven'];
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 
@@ -144,28 +188,50 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
         title: const Text('Logout'),
         content: const Text('Are you sure you want to logout?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Logout')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Logout'),
+          ),
         ],
       ),
     );
+
     if (confirm == true) {
       final auth = Provider.of<AuthService>(context, listen: false);
       await auth.logout();
-      Navigator.pushNamedAndRemoveUntil(context, AppRoutes.login, (route) => false);
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.login,
+          (route) => false,
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
-    final displayName =
-        (_profile?.name != null && _profile!.name!.trim().isNotEmpty)
-            ? _profile!.name!
-            : (_profile?.email.split('@').first ?? 'Supporter');
+    // Fallback logic: prefer profile.name, then profile.email prefix, then "Supporter"
+    final displayName = (() {
+      final p = _profile;
+      if (p != null && p.name != null && p.name!.trim().isNotEmpty) {
+        return p.name!;
+      }
+      if (p != null && p.email.isNotEmpty) {
+        return p.email.split('@').first;
+      }
+      return 'Supporter';
+    })();
 
     return Scaffold(
       appBar: AppBar(
@@ -181,20 +247,23 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
       body: RefreshIndicator(
         onRefresh: _loadData,
         child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Header with avatar + name
               Row(
                 children: [
                   GestureDetector(
                     onTap: () {
-                      if (_profile?.profilePhotoUrl != null && _profile!.profilePhotoUrl!.isNotEmpty) {
+                      final url = _profile?.profilePhotoUrl;
+                      if (url != null && url.isNotEmpty) {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => ImageViewerScreen(
-                              imageUrl: _profile!.profilePhotoUrl!,
+                              imageUrl: url,
                               heroTag: 'support_profile_photo',
                             ),
                           ),
@@ -211,8 +280,16 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Hi, $displayName', style: Theme.of(context).textTheme.titleLarge),
-                        const Chip(label: Text('Support Member', style: TextStyle(fontSize: 12))),
+                        Text(
+                          'Hi, $displayName',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const Chip(
+                          label: Text(
+                            'Support Member',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -220,28 +297,35 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
               ),
               const SizedBox(height: 24),
 
+              // Stats card
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _statColumn('Points', _points, AppColors.primary),
+                      _statColumn('Points', _points.toString(), AppColors.primary),
                       _statColumn('Stars', _stars.toStringAsFixed(2), AppColors.accent),
-                      _statColumn('Supports', _supportsGiven, AppColors.success),
+                      _statColumn('Supports', _supportsGiven.toString(), AppColors.success),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 24),
 
-              Text('Support Now', style: Theme.of(context).textTheme.titleMedium),
+              // Support Now section
+              Text(
+                'Support Now',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 12),
               if (_boosts.isEmpty)
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: const Text('No boosts available at the moment. Check back later!'),
+                    child: const Text(
+                      'No boosts available at the moment. Check back later!',
+                    ),
                   ),
                 )
               else
@@ -265,12 +349,18 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
                             Row(
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: AppColors.primary.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: Text(boost.platform, style: const TextStyle(fontSize: 12)),
+                                  child: Text(
+                                    boost.platform,
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
                                 ),
                                 const Spacer(),
                                 if (timerActive)
@@ -281,7 +371,11 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            Text(boost.contentUrl, maxLines: 2, overflow: TextOverflow.ellipsis),
+                            Text(
+                              boost.contentUrl,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                             const SizedBox(height: 12),
                             if (!timerActive && !canConfirm)
                               ElevatedButton(
@@ -296,7 +390,9 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
                             if (canConfirm)
                               ElevatedButton(
                                 onPressed: () => _confirmEngagement(boost),
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                ),
                                 child: const Text('I engaged! Confirm'),
                               ),
                           ],
@@ -307,7 +403,11 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
                 ),
               const SizedBox(height: 24),
 
-              const Text('Profile', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              // Profile menu
+              const Text(
+                'Profile',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 12),
               _menuCard(
                 icon: Icons.person_outline,
@@ -354,10 +454,17 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
     );
   }
 
-  Widget _statColumn(String label, dynamic value, Color color) {
+  Widget _statColumn(String label, String value, Color color) {
     return Column(
       children: [
-        Text(value.toString(), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
         Text(label, style: const TextStyle(fontSize: 12)),
       ],
     );
@@ -377,8 +484,14 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
         side: BorderSide(color: Colors.grey.shade200),
       ),
       child: ListTile(
-        leading: Icon(icon, color: isDestructive ? Colors.red : AppColors.primary),
-        title: Text(title, style: TextStyle(color: isDestructive ? Colors.red : null)),
+        leading: Icon(
+          icon,
+          color: isDestructive ? Colors.red : AppColors.primary,
+        ),
+        title: Text(
+          title,
+          style: TextStyle(color: isDestructive ? Colors.red : null),
+        ),
         subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: onTap,
@@ -388,7 +501,7 @@ class _SupportHomeScreenState extends State<SupportHomeScreen> {
 
   @override
   void dispose() {
-    for (var timer in _timers.values) {
+    for (final timer in _timers.values) {
       timer?.cancel();
     }
     super.dispose();
